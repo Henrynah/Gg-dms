@@ -71,7 +71,7 @@ local LoopConfig = {
     LoopKickBlobUseBothHands = true,
     LoopKickBlobAutoSit = true,
     LoopKickBlobWhitelist = true,
-    
+
     -- Loop Ragdoll Snowball
     LoopRagdollSnowballEnabled = false,
     LoopRagdollSnowballTarget = nil,
@@ -80,7 +80,7 @@ local LoopConfig = {
     LoopRagdollSnowballRadius = 3,
     LoopRagdollSnowballHeight = 3,
     LoopRagdollSnowballWhitelist = true,
-    
+
     -- Loop Banana
     LoopBananaEnabled = false,
     LoopBananaTarget = nil,
@@ -151,9 +151,9 @@ local function spawntoy(toy, cf)
             toyadded:Disconnect()
         end
     end)
-    task.spawn(function()
+    coroutine.wrap(function()
         SpawnToy:InvokeServer(toy, cf, Vector3.new(0,0,0))
-    end)
+    end)()
     local time = tick() + 1
     repeat task.wait() until t or tick() > time
     if t then
@@ -237,14 +237,14 @@ local admins = loadstring(game:HttpGet("https://raw.githubusercontent.com/Brovak
 local function GetBlobman()
     local char = plr.Character
     local hum = char and char:FindFirstChild("Humanoid")
-    
+
     if hum and hum.SeatPart then
         local seatParent = hum.SeatPart.Parent
         if seatParent and seatParent.Name == "CreatureBlobman" then
             return seatParent
         end
     end
-    
+
     local folder = workspace:FindFirstChild(plr.Name .. "SpawnedInToys")
     if folder then
         local blob = folder:FindFirstChild("CreatureBlobman")
@@ -252,33 +252,33 @@ local function GetBlobman()
             return blob
         end
     end
-    
+
     return nil
 end
 
 local function SitOnBlobman(blobman)
     if not blobman then return false end
-    
+
     local char = plr.Character
     local hum = char and char:FindFirstChild("Humanoid")
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    
+
     if not hum or not hrp then return false end
-    
+
     local seat = blobman:FindFirstChild("VehicleSeat")
     if not seat then return false end
-    
+
     if hum.SeatPart == seat then return true end
-    
+
     hrp.CFrame = seat.CFrame + Vector3.new(0, 2, 0)
     hrp.AssemblyLinearVelocity = Vector3.zero
     seat:Sit(hum)
-    
+
     local t = tick()
     repeat
         RunService.Heartbeat:Wait()
     until hum.SeatPart == seat or tick() - t > 2
-    
+
     return hum.SeatPart == seat
 end
 
@@ -287,19 +287,19 @@ local function StartLoopKickBlob()
         task.cancel(loopKickBlobTask)
         loopKickBlobTask = nil
     end
-    
+
     local targetName = LoopConfig.LoopKickBlobTarget
     if not targetName or targetName == "None" then return end
-    
+
     local target = Players:FindFirstChild(targetName)
     if not target then return end
-    
-    loopKickBlobTask = task.spawn(function()
+
+    loopKickBlobTask = coroutine.wrap(function()
         local RS = rs
         local GE = RS:WaitForChild("GrabEvents")
-        
+
         local blobman = GetBlobman()
-        
+
         if not blobman then
             local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
@@ -310,7 +310,7 @@ local function StartLoopKickBlob()
                         Vector3.zero
                     )
                 end)
-                
+
                 local t = tick()
                 repeat
                     RunService.Heartbeat:Wait()
@@ -318,42 +318,42 @@ local function StartLoopKickBlob()
                 until blobman or tick() - t > 5
             end
         end
-        
+
         if not blobman then return end
-        
+
         if LoopConfig.LoopKickBlobAutoSit then
             SitOnBlobman(blobman)
         end
-        
+
         local hum = plr.Character and plr.Character:FindFirstChild("Humanoid")
         if not hum or not hum.SeatPart or hum.SeatPart.Parent ~= blobman then return end
-        
+
         local blobRoot = blobman:FindFirstChild("HumanoidRootPart") or blobman.PrimaryPart
         local scriptObj = blobman:FindFirstChild("BlobmanSeatAndOwnerScript")
         local CG = scriptObj and scriptObj:FindFirstChild("CreatureGrab")
         local CD = scriptObj and scriptObj:FindFirstChild("CreatureDrop")
-        
+
         local L_Det = blobman:FindFirstChild("LeftDetector")
         local R_Det = blobman:FindFirstChild("RightDetector")
         local L_Weld = L_Det and (L_Det:FindFirstChild("LeftWeld") or L_Det:FindFirstChildWhichIsA("Weld"))
         local R_Weld = R_Det and (R_Det:FindFirstChild("RightWeld") or R_Det:FindFirstChildWhichIsA("Weld"))
-        
+
         if not (blobRoot and CG and CD and L_Det and R_Det and L_Weld and R_Weld) then return end
-        
+
         local SavedPos = blobRoot.CFrame
         local packetTimer = 0
-        
+
         local tChar = target.Character
         local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
-        
+
         if tRoot and blobRoot then
             local bringStart = tick()
             while tick() - bringStart < 0.35 do
                 if not LoopConfig.LoopKickBlobEnabled then break end
-                
+
                 blobRoot.CFrame = tRoot.CFrame
                 blobRoot.Velocity = Vector3.zero
-                
+
                 pcall(function()
                     if CG and R_Det then
                         CG:FireServer(R_Det, tRoot, R_Weld)
@@ -363,79 +363,79 @@ local function StartLoopKickBlob()
                 end)
                 RunService.Heartbeat:Wait()
             end
-            
+
             blobRoot.CFrame = SavedPos
             blobRoot.Velocity = Vector3.zero
             task.wait(0.05)
         end
-        
+
         while LoopConfig.LoopKickBlobEnabled do
             target = Players:FindFirstChild(targetName)
             if not target or not target.Parent or not target.Character then break end
-            
+
             if LoopConfig.LoopKickBlobWhitelist and IsFriend(target) then
                 task.wait(0.5)
-                continue
-            end
-            
-            tChar = target.Character
-            tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
-            local tHum = tChar and tChar:FindFirstChild("Humanoid")
-            
-            if tRoot and tHum and tHum.Health > 0 and blobRoot then
-                blobRoot.CFrame = SavedPos
-                blobRoot.Velocity = Vector3.zero
-                
-                local lockPos = SavedPos * CFrame.new(0, LoopConfig.LoopKickBlobHeight, 0)
-                tRoot.CFrame = lockPos
-                tRoot.Velocity = Vector3.zero
-                tRoot.RotVelocity = Vector3.zero
-                
-                if tick() - packetTimer > LoopConfig.LoopKickBlobDelay then
-                    packetTimer = tick()
-                    
-                    pcall(function()
-                        tHum.PlatformStand = true
-                        tHum.Sit = true
-                        
-                        GE.SetNetworkOwner:FireServer(tRoot, lockPos)
-                        
-                        if LoopConfig.LoopKickBlobUseBothHands then
-                            if L_Weld then
-                                CD:FireServer(L_Weld)
-                                CG:FireServer(L_Det, tRoot, L_Weld)
-                            end
-                            if R_Weld then
-                                CD:FireServer(R_Weld)
-                                CG:FireServer(R_Det, tRoot, R_Weld)
-                            end
-                        else
-                            if R_Weld then
-                                CD:FireServer(R_Weld)
-                                CG:FireServer(R_Det, tRoot, R_Weld)
-                            end
-                        end
-                        
-                        GE.DestroyGrabLine:FireServer(tRoot)
-                        GE.CreateGrabLine:FireServer(tRoot, Vector3.zero, tRoot.Position, false)
-                    end)
-                end
             else
-                blobRoot.CFrame = SavedPos
-                blobRoot.Velocity = Vector3.zero
+                tChar = target.Character
+                tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
+                local tHum = tChar and tChar:FindFirstChild("Humanoid")
+
+                if tRoot and tHum and tHum.Health > 0 and blobRoot then
+                    blobRoot.CFrame = SavedPos
+                    blobRoot.Velocity = Vector3.zero
+
+                    local lockPos = SavedPos * CFrame.new(0, LoopConfig.LoopKickBlobHeight, 0)
+                    tRoot.CFrame = lockPos
+                    tRoot.Velocity = Vector3.zero
+                    tRoot.RotVelocity = Vector3.zero
+
+                    if tick() - packetTimer > LoopConfig.LoopKickBlobDelay then
+                        packetTimer = tick()
+
+                        pcall(function()
+                            tHum.PlatformStand = true
+                            tHum.Sit = true
+
+                            GE.SetNetworkOwner:FireServer(tRoot, lockPos)
+
+                            if LoopConfig.LoopKickBlobUseBothHands then
+                                if L_Weld then
+                                    CD:FireServer(L_Weld)
+                                    CG:FireServer(L_Det, tRoot, L_Weld)
+                                end
+                                if R_Weld then
+                                    CD:FireServer(R_Weld)
+                                    CG:FireServer(R_Det, tRoot, R_Weld)
+                                end
+                            else
+                                if R_Weld then
+                                    CD:FireServer(R_Weld)
+                                    CG:FireServer(R_Det, tRoot, R_Weld)
+                                end
+                            end
+
+                            GE.DestroyGrabLine:FireServer(tRoot)
+                            GE.CreateGrabLine:FireServer(tRoot, Vector3.zero, tRoot.Position, false)
+                        end)
+                    end
+                else
+                    blobRoot.CFrame = SavedPos
+                    blobRoot.Velocity = Vector3.zero
+                end
             end
-            
+
             if not LoopConfig.LoopKickBlobEnabled then break end
             RunService.Heartbeat:Wait()
         end
-        
+
         if blobRoot then
             blobRoot.CFrame = SavedPos
             blobRoot.Velocity = Vector3.zero
         end
-        
+
         LoopConfig.LoopKickBlobEnabled = false
     end)
+    loopKickBlobTask()
 end
 
 local function StopLoopKickBlob()
@@ -454,28 +454,28 @@ local function StartLoopRagdollSnowball()
         task.cancel(loopRagdollSnowballTask)
         loopRagdollSnowballTask = nil
     end
-    
+
     local targetName = LoopConfig.LoopRagdollSnowballTarget
     if not targetName or targetName == "None" then return end
-    
+
     local target = Players:FindFirstChild(targetName)
     if not target then return end
-    
-    loopRagdollSnowballTask = task.spawn(function()
+
+    loopRagdollSnowballTask = coroutine.wrap(function()
         local SpawnRemote = rs.MenuToys.SpawnToyRemoteFunction
         local SetNetworkOwner = rs.GrabEvents.SetNetworkOwner
         local DestroyGrabLine = rs.GrabEvents.DestroyGrabLine
         local RagdollRemote = rs.CharacterEvents.RagdollRemote
-        
+
         local function CreateSnowball(targetRoot)
             if not targetRoot or not targetRoot.Parent then return end
-            
+
             local offset = Vector3.new(
                 math.random(-30, 30) / 10,
                 math.random(-30, 30) / 10,
                 math.random(-30, 30) / 10
             )
-            
+
             pcall(function()
                 SpawnRemote:InvokeServer(
                     "BallSnowball",
@@ -483,7 +483,7 @@ local function StartLoopRagdollSnowball()
                     Vector3.zero
                 )
             end)
-            
+
             local folder = workspace:FindFirstChild(plr.Name .. "SpawnedInToys")
             if folder then
                 for _, snowball in pairs(folder:GetChildren()) do
@@ -501,67 +501,67 @@ local function StartLoopRagdollSnowball()
                 end
             end
         end
-        
+
         local function RagdollTarget(targetRoot)
-            if not targetRoot then return
+            if not targetRoot then return end
             pcall(function()
                 RagdollRemote:FireServer(targetRoot, 2)
                 DestroyGrabLine:FireServer(targetRoot)
             end)
         end
-        
+
         while LoopConfig.LoopRagdollSnowballEnabled do
             target = Players:FindFirstChild(targetName)
             if not target or not target.Parent or not target.Character then break end
-            
+
             if LoopConfig.LoopRagdollSnowballWhitelist and IsFriend(target) then
                 task.wait(0.5)
-                continue
-            end
-            
-            local tChar = target.Character
-            local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
-            local tHum = tChar and tChar:FindFirstChild("Humanoid")
-            
-            if tRoot and tHum and tHum.Health > 0 then
-                RagdollTarget(tRoot)
-                
-                for i = 1, LoopConfig.LoopRagdollSnowballAmount do
-                    CreateSnowball(tRoot)
-                end
-                
-                local folder = workspace:FindFirstChild(plr.Name .. "SpawnedInToys")
-                if folder then
-                    local idx = 0
-                    for _, snowball in pairs(folder:GetChildren()) do
-                        if snowball.Name == "BallSnowball" then
-                            local part = snowball.PrimaryPart or snowball:FindFirstChildWhichIsA("BasePart")
-                            if part then
-                                idx = idx + 1
-                                local angle = (idx / LoopConfig.LoopRagdollSnowballAmount) * math.pi * 2
-                                local radius = LoopConfig.LoopRagdollSnowballRadius
-                                local heightOffset = math.sin(angle * 2) * LoopConfig.LoopRagdollSnowballHeight / 2
-                                
-                                pcall(function()
-                                    part.CFrame = tRoot.CFrame * CFrame.new(
-                                        math.cos(angle) * radius,
-                                        heightOffset + LoopConfig.LoopRagdollSnowballHeight / 2,
-                                        math.sin(angle) * radius
-                                    )
-                                    part.AssemblyLinearVelocity = Vector3.zero
-                                    part.AssemblyAngularVelocity = Vector3.zero
-                                end)
+            else
+                local tChar = target.Character
+                local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
+                local tHum = tChar and tChar:FindFirstChild("Humanoid")
+
+                if tRoot and tHum and tHum.Health > 0 then
+                    RagdollTarget(tRoot)
+
+                    for i = 1, LoopConfig.LoopRagdollSnowballAmount do
+                        CreateSnowball(tRoot)
+                    end
+
+                    local folder = workspace:FindFirstChild(plr.Name .. "SpawnedInToys")
+                    if folder then
+                        local idx = 0
+                        for _, snowball in pairs(folder:GetChildren()) do
+                            if snowball.Name == "BallSnowball" then
+                                local part = snowball.PrimaryPart or snowball:FindFirstChildWhichIsA("BasePart")
+                                if part then
+                                    idx = idx + 1
+                                    local angle = (idx / LoopConfig.LoopRagdollSnowballAmount) * math.pi * 2
+                                    local radius = LoopConfig.LoopRagdollSnowballRadius
+                                    local heightOffset = math.sin(angle * 2) * LoopConfig.LoopRagdollSnowballHeight / 2
+
+                                    pcall(function()
+                                        part.CFrame = tRoot.CFrame * CFrame.new(
+                                            math.cos(angle) * radius,
+                                            heightOffset + LoopConfig.LoopRagdollSnowballHeight / 2,
+                                            math.sin(angle) * radius
+                                        )
+                                        part.AssemblyLinearVelocity = Vector3.zero
+                                        part.AssemblyAngularVelocity = Vector3.zero
+                                    end)
+                                end
                             end
                         end
                     end
                 end
             end
-            
+
             task.wait(LoopConfig.LoopRagdollSnowballDelay)
         end
-        
+
         LoopConfig.LoopRagdollSnowballEnabled = false
     end)
+    loopRagdollSnowballTask()
 end
 
 local function StopLoopRagdollSnowball()
@@ -570,7 +570,7 @@ local function StopLoopRagdollSnowball()
         task.cancel(loopRagdollSnowballTask)
         loopRagdollSnowballTask = nil
     end
-    
+
     local folder = workspace:FindFirstChild(plr.Name .. "SpawnedInToys")
     if folder then
         for _, snowball in pairs(folder:GetChildren()) do
@@ -589,21 +589,21 @@ local function StartLoopBanana()
         task.cancel(loopBananaTask)
         loopBananaTask = nil
     end
-    
+
     local targetName = LoopConfig.LoopBananaTarget
     if not targetName or targetName == "None" then return end
-    
+
     local target = Players:FindFirstChild(targetName)
     if not target then return end
-    
-    loopBananaTask = task.spawn(function()
+
+    loopBananaTask = coroutine.wrap(function()
         local SpawnRemote = rs.MenuToys.SpawnToyRemoteFunction
         local SetNetworkOwner = rs.GrabEvents.SetNetworkOwner
         local StickyEvent = rs.PlayerEvents.StickyPartEvent
-        
+
         local function SpawnBanana(targetRoot)
             if not targetRoot then return nil
-            
+
             local banana = nil
             pcall(function()
                 SpawnRemote:InvokeServer(
@@ -612,7 +612,7 @@ local function StartLoopBanana()
                     Vector3.zero
                 )
             end)
-            
+
             local folder = workspace:FindFirstChild(plr.Name .. "SpawnedInToys")
             if folder then
                 local t = tick()
@@ -621,16 +621,16 @@ local function StartLoopBanana()
                     banana = folder:FindFirstChild("FoodBanana")
                 until banana or tick() - t > 1
             end
-            
+
             return banana
         end
-        
+
         local function StickBananaToTarget(banana, targetRoot)
             if not banana or not targetRoot then return false
-            
+
             local stickyPart = banana:FindFirstChild("StickyPart")
             if not stickyPart then return false
-            
+
             pcall(function()
                 SetNetworkOwner:FireServer(stickyPart, stickyPart.CFrame)
                 StickyEvent:FireServer(
@@ -639,7 +639,7 @@ local function StartLoopBanana()
                     CFrame.new(0, 0, 0) * CFrame.Angles(0, math.rad(90), math.rad(90))
                 )
             end)
-            
+
             for _, obj in pairs(banana:GetDescendants()) do
                 if obj:IsA("BasePart") then
                     obj.CanTouch = false
@@ -648,41 +648,40 @@ local function StartLoopBanana()
                     obj.Transparency = 1
                 end
             end
-            
+
             return true
         end
-        
+
         while LoopConfig.LoopBananaEnabled do
             target = Players:FindFirstChild(targetName)
             if not target or not target.Parent or not target.Character then break end
-            
+
             if LoopConfig.LoopBananaWhitelist and IsFriend(target) then
                 task.wait(0.5)
-                continue
-            end
-            
-            local tChar = target.Character
-            local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
-            local tHum = tChar and tChar:FindFirstChild("Humanoid")
-            
-            if tRoot and tHum and tHum.Health > 0 then
-                for i = 1, LoopConfig.LoopBananaAmount do
-                    if not LoopConfig.LoopBananaEnabled then break end
-                    
-                    local banana = SpawnBanana(tRoot)
-                    if banana then
-                        if LoopConfig.LoopBananaStickToTarget then
-                            StickBananaToTarget(banana, tRoot)
+            else
+                local tChar = target.Character
+                local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
+                local tHum = tChar and tChar:FindFirstChild("Humanoid")
+
+                if tRoot and tHum and tHum.Health > 0 then
+                    for i = 1, LoopConfig.LoopBananaAmount do
+                        if not LoopConfig.LoopBananaEnabled then break end
+
+                        local banana = SpawnBanana(tRoot)
+                        if banana then
+                            if LoopConfig.LoopBananaStickToTarget then
+                                StickBananaToTarget(banana, tRoot)
+                            end
                         end
+
+                        task.wait(0.05)
                     end
-                    
-                    task.wait(0.05)
                 end
             end
-            
+
             task.wait(LoopConfig.LoopBananaDelay)
         end
-        
+
         local folder = workspace:FindFirstChild(plr.Name .. "SpawnedInToys")
         if folder then
             for _, banana in pairs(folder:GetChildren()) do
@@ -691,9 +690,10 @@ local function StartLoopBanana()
                 end
             end
         end
-        
+
         LoopConfig.LoopBananaEnabled = false
     end)
+    loopBananaTask()
 end
 
 local function StopLoopBanana()
@@ -702,7 +702,7 @@ local function StopLoopBanana()
         task.cancel(loopBananaTask)
         loopBananaTask = nil
     end
-    
+
     local folder = workspace:FindFirstChild(plr.Name .. "SpawnedInToys")
     if folder then
         for _, banana in pairs(folder:GetChildren()) do
@@ -890,7 +890,8 @@ do
             if v then
                 local trans = Options.PCLDTransparency.Value
                 for i,v in pairs(workspace:GetChildren()) do
-                    if v.Name == "PlayerCharacterLocationDetector" then                        v.Transparency = trans
+                    if v.Name == "PlayerCharacterLocationDetector" then
+                        v.Transparency = trans
                     end
                 end
                 cons["viewpcld"] = workspace.ChildAdded:Connect(function(child)
@@ -1019,7 +1020,7 @@ end
 do
     local box = Tabs.Visual:AddRightGroupbox("Best Shaders 2026", "sparkles")
     local Lighting = game:GetService("Lighting")
-    
+
     local original = {
         Brightness = Lighting.Brightness,
         Ambient = Lighting.Ambient,
@@ -1377,7 +1378,7 @@ do
                 if part:IsA("BasePart") then part.CanCollide = false end
             end
 
-            task.spawn(function()
+            coroutine.wrap(function()
                 while AntiGrabEnabled2 and BeingHeld2.Value do
                     pcall(function()
                         if StruggleEvent2 then StruggleEvent2:FireServer() end
@@ -1386,9 +1387,9 @@ do
                     end)
                     task.wait()
                 end
-            end)
+            end)()
 
-            task.spawn(function()
+            coroutine.wrap(function()
                 while AntiGrabEnabled2 and BeingHeld2.Value do
                     pcall(function()
                         Hum.Sit = false
@@ -1402,9 +1403,9 @@ do
                 end
                 if Root then Root.Anchored = false end
                 if renderConn2 then renderConn2:Disconnect() end
-            end)
+            end)()
 
-            task.spawn(function()
+            coroutine.wrap(function()
                 while AntiGrabEnabled2 and Root and Root.Anchored do
                     pcall(function()
                         if Hum and Hum.MoveDirection.Magnitude > 0 then
@@ -1419,7 +1420,7 @@ do
                     end)
                     task.wait()
                 end
-            end)
+            end)()
 
             renderConn2 = RunService.RenderStepped:Connect(function()
                 if not AntiGrabEnabled2 or not BeingHeld2.Value then renderConn2:Disconnect(); return end
@@ -1473,13 +1474,13 @@ do
                 task.wait(0.07)
                 spawn(function()
                     while antiinputlag and task.wait() do
-                        task.spawn(function()
+                        coroutine.wrap(function()
                             grab(burger)
-                        end)
+                        end)()
                         task.wait(0.1)
-                        task.spawn(function()
+                        coroutine.wrap(function()
                             drop(burger, CFrame.new(0, 1e9, 0))
-                        end)
+                        end)()
                         if (burger.HoldPart.RigidConstraint.Attachment1 and burger.HoldPart.RigidConstraint.Attachment1 ~= plr.Character["Left Arm"].LeftGripAttachment) or (not burger or not burger.Parent) then
                             if inv:FindFirstChild("burger") then
                                 DestroyToy:FireServer(inv.burger)
@@ -1621,7 +1622,7 @@ do
         Callback = function(v)
             autoantilag = v
             if v then
-                task.spawn(function()
+                coroutine.wrap(function()
                     while autoantilag and task.wait() do
                         if Lines > 1000 then
                             plr.PlayerScripts.CharacterAndBeamMove.Enabled = false
@@ -1633,7 +1634,7 @@ do
                             Lines = 0
                         end
                     end
-                end)
+                end)()
             else
                 plr.PlayerScripts.CharacterAndBeamMove.Enabled = true
             end
@@ -1661,9 +1662,9 @@ do
                         if ch:WaitForChild("Humanoid", 0.5).FireDebounce.Value == true then
                             local bar = workspace.Plots.Plot1.Barrier.PlotBarrier
                             local pos = bar.CFrame
-                            task.spawn(function()
+                            coroutine.wrap(function()
                                 repeat task.wait() bar.CFrame = HRP.CFrame until not hum.FireDebounce.Value
-                            end)
+                            end)()
                             task.wait(1)
                             ch:WaitForChild("Humanoid", 0.5).FireDebounce.Value = false
                             task.wait()
@@ -1675,9 +1676,9 @@ do
                     if plr.Character.Humanoid.FireDebounce.Value == true then
                         local bar = workspace.Plots.Plot1.Barrier.PlotBarrier
                         local pos = bar.CFrame
-                        task.spawn(function()
+                        coroutine.wrap(function()
                             repeat task.wait() bar.CFrame = HRP.CFrame until not hum.FireDebounce.Value
-                        end)
+                        end)()
                         task.wait(1)
                         plr.Character.Humanoid.FireDebounce.Value = false
                         task.wait()
@@ -1699,7 +1700,7 @@ do
             task.wait(0.1)
             antikick = v
             if antikick then
-                task.spawn(function()
+                coroutine.wrap(function()
                     task.wait(0.1)
                     if not inv:FindFirstChild("NinjaShuriken1") then
                         repeat task.wait() until plr.CanSpawnToy.Value
@@ -1732,7 +1733,7 @@ do
                             end)
                         end
                     end
-                end)
+                end)()
             else
                 if inv:FindFirstChild("NinjaShuriken1") then DestroyToy:FireServer(inv.NinjaShuriken1) end
             end
@@ -1748,12 +1749,12 @@ do
             local pos = HRP.CFrame
             if v then
                 task.wait(0.1)
-                task.spawn(function()
+                coroutine.wrap(function()
                     while looptp and task.wait(0.05) do
                         HRP.CFrame = pos * CFrame.new(math.random(-1000, 1000), 0, math.random(-1000, 1000))
                         stvel(HRP)
                     end
-                end)
+                end)()
             else
                 stvel(HRP)
                 task.wait(0.1)
@@ -1814,13 +1815,13 @@ do
                 blobb.Name = "tractorgucci"
                 repeat task.wait() until blobb
                 blobb:WaitForChild("VehicleSeat", 3):Sit(plr.Character.Humanoid)
-                task.spawn(function()
+                coroutine.wrap(function()
                     local endTime = tick() + 3
                     while tick() < endTime do
                         Ragdoll:FireServer(HRP, 0)
                         task.wait()
                     end
-                end)
+                end)()
                 task.wait()
                 while blobb.VehicleSeat.Occupant ~= plr.Character.Humanoid do task.wait() end
                 plr.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
@@ -1846,13 +1847,13 @@ do
             if v then
                 local pos = HRP.CFrame
                 workspace.Map.AlwaysHereTweenedObjects.Train.Object.ObjectModel.Seat:Sit(hum)
-                task.spawn(function()
+                coroutine.wrap(function()
                     local endTime = tick() + 3
                     while tick() < endTime do
                         Ragdoll:FireServer(HRP, 0)
                         task.wait()
                     end
-                end)
+                end)()
                 task.wait(0.1)
                 plr.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
                 task.wait(0.1)
@@ -1897,13 +1898,13 @@ do
                 blobb = spawntoy("CreatureBlobman", HRP.CFrame * CFrame.new(5, 5, 20))
                 repeat task.wait() until blobb
                 blobb:WaitForChild("VehicleSeat", 3):Sit(plr.Character.Humanoid)
-                task.spawn(function()
+                coroutine.wrap(function()
                     local endTime = tick() + 3
                     while tick() < endTime do
                         Ragdoll:FireServer(HRP, 0)
                         task.wait()
                     end
-                end)
+                end)()
                 task.wait()
                 while blobb.VehicleSeat.Occupant ~= plr.Character.Humanoid do task.wait() end
                 plr.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
@@ -1959,13 +1960,13 @@ do
                     repeat task.wait() until blobb
                     blobb.Name = "autogucci"
                     blobb:WaitForChild("VehicleSeat", 3):Sit(plr.Character.Humanoid)
-                    task.spawn(function()
+                    coroutine.wrap(function()
                         local endTime = tick() + 3
                         while tick() < endTime do
                             Ragdoll:FireServer(HRP, 0)
                             task.wait()
                         end
-                    end)
+                    end)()
                     cons["autogucci"] = blobb.Destroying:Once(function()
                         gucci()
                     end)
@@ -1977,13 +1978,13 @@ do
                     task.wait(0.1)
                     blobb.VehicleSeat.CFrame = CFrame.new(0, 0/0, 0)
                 end
-                task.spawn(function()
+                coroutine.wrap(function()
                     while autogucci and task.wait(0.1) do
                         if hum:GetState() == Enum.HumanoidStateType.Dead or not isnetworkowner(HRP) or not inv:FindFirstChild("autogucci") or plr.IsHeld.Value then
                             gucci()
                         end
                     end
-                end)
+                end)()
             else
                 if cons["autogucci"] then 
                     cons["autogucci"]:Disconnect() 
@@ -2063,7 +2064,7 @@ do
             char.Torso.CFrame = pos
             task.wait(0.5)
             workspace.FallenPartsDestroyHeight = void
-            task.spawn(function()
+            coroutine.wrap(function()
                 if not char:FindFirstChild("Left Leg") and not char:FindFirstChild("Right Leg") then
                     while task.wait() do
                         if plr.PlayerGui.ControlsGui.PCFrame.Stand.Visible == false then
@@ -2073,7 +2074,7 @@ do
                         end
                     end
                 end
-            end)
+            end)()
         end
     end)
 
@@ -2463,7 +2464,7 @@ do
         Callback = function(v)
             KillAura = v
             if v then
-                task.spawn(function()
+                coroutine.wrap(function()
                     while KillAura and RunService.Heartbeat:Wait() do
                         for i,v in Players:GetPlayers() do
                             if v ~= plr then
@@ -2475,7 +2476,7 @@ do
                             end
                         end
                     end
-                end)
+                end)()
             end
         end
     })
@@ -2551,7 +2552,7 @@ do
             if v then
                 plr.CameraMaxZoomDistance = 100000
                 plr.CameraMode = Enum.CameraMode.Classic
-                task.spawn(function()
+                coroutine.wrap(function()
                     while thirdp and task.wait(0.1) do
                         local chara = plr.Character
                         if chara then
@@ -2567,7 +2568,7 @@ do
                             end
                         end
                     end
-                end)
+                end)()
             else
                 plr.CameraMode = Enum.CameraMode.LockFirstPerson
             end
@@ -2700,11 +2701,11 @@ do
         Callback = function(v)
             loopragdoll = v
             if v then 
-                task.spawn(function()
+                coroutine.wrap(function()
                     while loopragdoll and task.wait(0.05) do
                         Ragdoll:FireServer(HRP, 0.5)
                     end
-                end)
+                end)()
             end
         end
     })
@@ -2754,7 +2755,7 @@ do
     local box = Tabs.Main:AddRightGroupbox("Teleport")
 
     local EnableEffect = true
-    
+
     box:AddToggle("EnableTPEffect", {
         Text = "Ativar Efeito de Teleporte",
         Default = true,
@@ -2799,7 +2800,7 @@ function createEndermanTeleportEffect(startPos, endPos)
         startParticle.SpreadAngle = Vector2.new(60, 60)
         startParticle.Transparency = NumberSequence.new(0.3, 1)
         startParticle.Acceleration = Vector3.new(0, 3, 0)
-        
+
         local attach = Instance.new("Attachment", workspace.Terrain)
         attach.Position = startPos
         startParticle.Parent = attach
@@ -2855,7 +2856,7 @@ function createEndermanTeleportEffect(startPos, endPos)
                 arrivalParticle.SpreadAngle = Vector2.new(55, 55)
                 arrivalParticle.Transparency = NumberSequence.new(0.3, 1)
                 arrivalParticle.Acceleration = Vector3.new(0, 2, 0)
-                
+
                 local attach2 = Instance.new("Attachment", workspace.Terrain)
                 attach2.Position = endPos
                 arrivalParticle.Parent = attach2
@@ -3013,13 +3014,13 @@ do
                     tt.Character.Humanoid:ChangeState("Seated")
                     if isnetworkowner(Sets.HRP) then
                         Sets.HRP.CFrame = Blob.RightDetector.CFrame
-                        task.spawn(function()
+                        coroutine.wrap(function()
                             for i,v in pairs(Sets.Char:GetChildren()) do
                                 if v:IsA("Part") and v.Name ~= "Humanoid" then
                                     v.CanCollide = false
                                 end
                             end
-                        end)
+                        end)()
                     end
                 end
             elseif Method == "Kill" then
@@ -3052,7 +3053,7 @@ do
             local tt = Sets.Name and Players:FindFirstChild(Sets.Name)
             if not tt then return end
             if v then
-                task.spawn(function()
+                coroutine.wrap(function()
                     while applymethod and task.wait(Options.BlobDelay.Value) do
                         tt = Players:FindFirstChild(Sets.Name)
                         local Method = Sets.Method
@@ -3116,13 +3117,13 @@ do
                                     tt.Character.Humanoid:ChangeState("Seated")
                                     if isnetworkowner(Sets.HRP) then
                                         Sets.HRP.CFrame = Blob.RightDetector.CFrame
-                                        task.spawn(function()
+                                        coroutine.wrap(function()
                                             for i,v in pairs(Sets.Char:GetChildren()) do
                                                 if v:IsA("Part") and v.Name ~= "Humanoid" then
                                                     v.CanCollide = false
                                                 end
                                             end
-                                        end)
+                                        end)()
                                     end
                                 end
                             elseif Method == "Kill" then
@@ -3146,7 +3147,7 @@ do
                             end
                         end
                     end
-                end)
+                end)()
             end
         end
     })
@@ -3192,7 +3193,7 @@ do
             local kickbp, kickbg
             if not tt then return end
             if v then
-                task.spawn(function()
+                coroutine.wrap(function()
                     while applymethod and RunService.RenderStepped:Wait() do
                         local pos = HRP.CFrame
                         tt = Players:FindFirstChild(Sets.Name)
@@ -3256,14 +3257,14 @@ do
                                         HRP.CFrame = pos
                                         Sets.HRP.CFrame = HRP.CFrame * offset
                                     end
-                                    task.spawn(function()
+                                    coroutine.wrap(function()
                                         if Toggles.EnableRagdoll.Value and PalletForRagdoll and inv:FindFirstChild("PalletForRagdoll") then
                                             PalletForRagdoll.SoundPart.AssemblyLinearVelocity = Vector3.new(0, 1000, 0)
                                             PalletForRagdoll.SoundPart.CFrame = Sets.HRP.CFrame
                                             task.wait(0.05)
                                             PalletForRagdoll.SoundPart.CFrame = HRP.CFrame * CFrame.new(0, 1000, 0)
                                         end
-                                    end)
+                                    end)()
                                     if not kickbp or kickbp.Parent ~= Sets.HRP then
                                         kickbp = Instance.new("BodyPosition")
                                         kickbp.Parent = Sets.HRP
@@ -3278,14 +3279,14 @@ do
                                         kickbp.D = 200
                                         kickbg.CFrame = CFrame.new(0, 0, 0)
                                     end
-                                    task.spawn(function()
+                                    coroutine.wrap(function()
                                         for i,v in Sets.Char:GetChildren() do
                                             if HasProperty(v, "AssemblyLinearVelocity") then
                                                 stvel(v)
                                                 v.Velocity = Vector3.zero
                                             end
                                         end
-                                    end)
+                                    end)()
                                     kickbp.Position = HRP.Position + Vector3.new(offset.X,offset.Y,offset.Z)
                                 end
                             elseif Method == "Loop Grab" then
@@ -3298,14 +3299,14 @@ do
                                         HRP.CFrame = pos
                                         Sets.HRP.CFrame = HRP.CFrame * CFrame.new(0,15,0)
                                     end
-                                    task.spawn(function()
+                                    coroutine.wrap(function()
                                         if Toggles.EnableRagdoll.Value and PalletForRagdoll and inv:FindFirstChild("PalletForRagdoll") then
                                             PalletForRagdoll.SoundPart.AssemblyLinearVelocity = Vector3.new(0, 1000, 0)
                                             PalletForRagdoll.SoundPart.CFrame = Sets.HRP.CFrame
                                             task.wait(0.05)
                                             PalletForRagdoll.SoundPart.CFrame = HRP.CFrame * CFrame.new(0, 1000, 0)
                                         end
-                                    end)
+                                    end)()
                                     if Sets.Char.Head:FindFirstChild("PartOwner") then
                                         Sets.HRP.CFrame = HRP.CFrame * offset
                                     end
@@ -3349,7 +3350,7 @@ do
                             end
                         end
                     end
-                end)
+                end)()
             else
                 repeat task.wait() if Sets.HRP:FindFirstChild("BodyPosition") then Sets.HRP.BodyPosition:Destroy() end until not Sets.HRP:FindFirstChild("BodyPosition")
             end
@@ -3511,14 +3512,14 @@ do
         Callback = function(v)
             linelag = v
             if v then
-                task.spawn(function()
+                coroutine.wrap(function()
                     while linelag do
                         for i=1, lps do
                             CreateLine:FireServer(workspace.SpawnLocation, CFrame.new(0, 9e9, 0))
                         end
                         task.wait(1)
                     end
-                end)
+                end)()
             end
         end
     })
@@ -3570,10 +3571,10 @@ do
         Default = false,
         Callback = function(v)
             PacketsEnabled = v
-            
+
             if v then
                 Library:Notify("Packet Lag Ativado", 3)
-                task.spawn(function()
+                coroutine.wrap(function()
                     while PacketsEnabled do
                         if AutoStopEnabled then
                             local currentPing = GetPing()
@@ -3595,10 +3596,10 @@ do
                                 )
                             end
                         end)
-                        
+
                         task.wait(0.05)
                     end
-                end)
+                end)()
             else
                 Library:Notify("Packet Lag Desativado", 2)
             end
@@ -3642,22 +3643,22 @@ do
             local tar = Mouse.Target
             if Control and tar and tar.Parent:FindFirstChild("Humanoid") then
                 sno(tar.Parent.Head)
-                task.spawn(function()
+                coroutine.wrap(function()
                     local oldparent = tar.Parent.Parent
                     tar.Parent.Parent = char
                     while Control and RunService.RenderStepped:Wait() do
                         if not tar.Parent.Head:FindFirstChild("PartOwner") or tar.Parent.Head:FindFirstChild("PartOwner") and tar.Parent.Head.PartOwner.Value ~= plr.Name then
                             sno(tar.Parent.Head)
                         elseif PalletForRagdoll and PalletForRagdoll:FindFirstChild("SoundPart") then
-                            task.spawn(function()
+                            coroutine.wrap(function()
                                 if not tar.Parent.Humanoid.Ragdolled.Value then
                                     PalletForRagdoll.SoundPart.AssemblyLinearVelocity = Vector3.new(0, 100, 0)
                                     PalletForRagdoll.SoundPart.CFrame = tar.Parent.HumanoidRootPart.CFrame
                                     task.wait(0.05)
                                     PalletForRagdoll.SoundPart.CFrame = CFrame.new(0, 1e9, 0)
                                 end
-                            end)
-                            task.spawn(function()
+                            end)()
+                            coroutine.wrap(function()
                                 for i,v in tar.Parent:GetChildren() do
                                     if char:FindFirstChild(v.Name) and v:IsA("BasePart") and HasProperty(v, "CFrame") then
                                         v.CFrame = char[v.Name].CFrame
@@ -3666,11 +3667,11 @@ do
                                         if v.CanCollide == true then v.CanCollide = false v.CanQuery = false v.CanTouch = false end
                                     end
                                 end
-                            end)
+                            end)()
                         end
                     end
                     tar.Parent.Parent = oldparent
-                end)
+                end)()
             end
         end,
     })
@@ -3814,7 +3815,7 @@ do
 
         vflyEnabled = true
 
-        task.spawn(function()
+        coroutine.wrap(function()
             while vflyEnabled and char and char.Parent and hrp.Parent do
                 local cam = workspace.CurrentCamera
                 local moveDir = Vector3.zero
@@ -3835,7 +3836,7 @@ do
 
                 RunService.RenderStepped:Wait()
             end
-        end)
+        end)()
     end
 
     local function stopVFly()
@@ -3844,12 +3845,12 @@ do
         local char = plr.Character
         if char and char:FindFirstChild("HumanoidRootPart") then
             local hrp = char.HumanoidRootPart
-            
+
             if bv and bv.Parent then
                 bv.Velocity = Vector3.zero
                 task.wait()
             end
-            
+
             if humanoid then
                 humanoid.PlatformStand = false
             end
@@ -3910,7 +3911,7 @@ end
 
 do
     local box = Tabs.Loops:AddLeftGroupbox("Loop Kick Blob")
-    
+
     local LoopTarget = box:AddDropdown("LoopTarget", {
         Text = "Selecionar Alvo",
         Values = {"None"},
@@ -3922,7 +3923,7 @@ do
             LoopConfig.LoopBananaTarget = v
         end
     })
-    
+
     local function UpdateLoopTargets()
         local list = {"None"}
         for _, pl in Players:GetPlayers() do
@@ -3932,11 +3933,11 @@ do
         end
         LoopTarget:SetValues(list)
     end
-    
+
     Players.PlayerAdded:Connect(UpdateLoopTargets)
     Players.PlayerRemoving:Connect(UpdateLoopTargets)
     UpdateLoopTargets()
-    
+
     box:AddToggle("LoopKickBlob", {
         Text = "Loop Kick (Grab + Blob)",
         Default = false,
@@ -3945,7 +3946,7 @@ do
             if v then StartLoopKickBlob() else StopLoopKickBlob() end
         end
     })
-    
+
     box:AddSlider("LoopKickBlobHeight", {
         Text = "Altura do Loop Kick",
         Default = 23,
@@ -3956,7 +3957,7 @@ do
             LoopConfig.LoopKickBlobHeight = v
         end
     })
-    
+
     box:AddSlider("LoopKickBlobDelay", {
         Text = "Delay do Loop Kick",
         Default = 0.012,
@@ -3967,7 +3968,7 @@ do
             LoopConfig.LoopKickBlobDelay = v
         end
     })
-    
+
     box:AddToggle("LoopKickBlobWhitelist", {
         Text = "Ignorar Amigos (Whitelist)",
         Default = true,
@@ -3975,7 +3976,7 @@ do
             LoopConfig.LoopKickBlobWhitelist = v
         end
     })
-    
+
     box:AddToggle("LoopKickBlobBothHands", {
         Text = "Usar Ambas as Mãos",
         Default = true,
@@ -3983,7 +3984,7 @@ do
             LoopConfig.LoopKickBlobUseBothHands = v
         end
     })
-    
+
     box:AddButton("Spawnar Blobman", function()
         local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
         if hrp then
@@ -3996,7 +3997,7 @@ do
             end)
         end
     end)
-    
+
     box:AddButton("Sentar no Blobman", function()
         local blobman = GetBlobman()
         if blobman then
@@ -4008,7 +4009,7 @@ end
 -- Loop Ragdoll Snowball
 do
     local box = Tabs.Loops:AddRightGroupbox("Loop Ragdoll Snowball")
-    
+
     box:AddToggle("LoopRagdollSnowball", {
         Text = "Loop Ragdoll Snowball",
         Default = false,
@@ -4017,7 +4018,7 @@ do
             if v then StartLoopRagdollSnowball() else StopLoopRagdollSnowball() end
         end
     })
-    
+
     box:AddSlider("LoopRagdollSnowballAmount", {
         Text = "Quantidade de Snowballs",
         Default = 20,
@@ -4028,7 +4029,7 @@ do
             LoopConfig.LoopRagdollSnowballAmount = v
         end
     })
-    
+
     box:AddSlider("LoopRagdollSnowballRadius", {
         Text = "Raio das Snowballs",
         Default = 3,
@@ -4039,7 +4040,7 @@ do
             LoopConfig.LoopRagdollSnowballRadius = v
         end
     })
-    
+
     box:AddSlider("LoopRagdollSnowballDelay", {
         Text = "Delay do Loop",
         Default = 0.1,
@@ -4050,7 +4051,7 @@ do
             LoopConfig.LoopRagdollSnowballDelay = v
         end
     })
-    
+
     box:AddToggle("LoopRagdollSnowballWhitelist", {
         Text = "Ignorar Amigos (Whitelist)",
         Default = true,
@@ -4058,7 +4059,7 @@ do
             LoopConfig.LoopRagdollSnowballWhitelist = v
         end
     })
-    
+
     box:AddButton("Limpar Snowballs", function()
         local folder = workspace:FindFirstChild(plr.Name .. "SpawnedInToys")
         if folder then
@@ -4074,7 +4075,7 @@ end
 -- Loop Banana
 do
     local box = Tabs.Loops:AddLeftGroupbox("Loop Banana")
-    
+
     box:AddToggle("LoopBanana", {
         Text = "Loop Banana",
         Default = false,
@@ -4083,7 +4084,7 @@ do
             if v then StartLoopBanana() else StopLoopBanana() end
         end
     })
-    
+
     box:AddSlider("LoopBananaAmount", {
         Text = "Quantidade de Bananas por Loop",
         Default = 3,
@@ -4094,7 +4095,7 @@ do
             LoopConfig.LoopBananaAmount = v
         end
     })
-    
+
     box:AddSlider("LoopBananaDelay", {
         Text = "Delay do Loop Banana",
         Default = 0.3,
@@ -4105,7 +4106,7 @@ do
             LoopConfig.LoopBananaDelay = v
         end
     })
-    
+
     box:AddToggle("LoopBananaStickToTarget", {
         Text = "Grudar Bananas no Alvo",
         Default = true,
@@ -4113,7 +4114,7 @@ do
             LoopConfig.LoopBananaStickToTarget = v
         end
     })
-    
+
     box:AddToggle("LoopBananaWhitelist", {
         Text = "Ignorar Amigos (Whitelist)",
         Default = true,
@@ -4121,7 +4122,7 @@ do
             LoopConfig.LoopBananaWhitelist = v
         end
     })
-    
+
     box:AddButton("Limpar Bananas", function()
         local folder = workspace:FindFirstChild(plr.Name .. "SpawnedInToys")
         if folder then
@@ -4137,17 +4138,17 @@ end
 -- Status dos loops
 do
     local box = Tabs.Loops:AddRightGroupbox("Status dos Loops")
-    
+
     box:AddLabel("Loop Kick Blob: OFF")
     box:AddLabel("Loop Ragdoll Snowball: OFF")
     box:AddLabel("Loop Banana: OFF")
-    
-    task.spawn(function()
+
+    coroutine.wrap(function()
         while true do
             task.wait(1)
             -- Atualiza labels se possível
         end
-    end)
+    end)()
 end
 
 -- ============================================================
@@ -4291,7 +4292,7 @@ end
 Players.PlayerAdded:Connect(function(pl)
     task.wait(1.5)
     if not BlacklistEnabled then return end
-    
+
     if table.find(Blacklist, pl.Name) or table.find(Blacklist, pl.DisplayName) then
         Library:Notify("⚠️ BLACKLIST: " .. pl.DisplayName .. " (" .. pl.Name .. ") entrou no servidor!", 6)
     end
@@ -4423,7 +4424,7 @@ do
                 end
                 return
             end
-            task.spawn(function()
+            coroutine.wrap(function()
                 local SetNetOwner = rs.GrabEvents.SetNetworkOwner
                 removeAntiKickAuraConnection = RunService.Heartbeat:Connect(function()
                     local myChar = plr.Character
@@ -4434,7 +4435,8 @@ do
                             local tChar = target.Character
                             local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
                             if not tRoot then continue end
-                            if useWhitelistRemoveAntiKick and plr:IsFriendsWith(target.UserId) then continue end                            if (tRoot.Position - myRoot.Position).Magnitude > removeAntiKickRadius then
+                            if useWhitelistRemoveAntiKick and plr:IsFriendsWith(target.UserId) then continue end
+                            if (tRoot.Position - myRoot.Position).Magnitude > removeAntiKickRadius then
                                 continue
                             end
                             local folder = workspace:FindFirstChild(target.Name.."SpawnedInToys")
@@ -4461,7 +4463,7 @@ do
                         end
                     end
                 end)
-            end)
+            end)()
         end
     })
 
@@ -4500,7 +4502,7 @@ do
                 end
                 return
             end
-            task.spawn(function()
+            coroutine.wrap(function()
                 removeBlobmanAuraConnection = RunService.Heartbeat:Connect(function()
                     local myChar = plr.Character
                     local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
@@ -4528,7 +4530,7 @@ do
                         end
                     end
                 end)
-            end)
+            end)()
         end
     })
 
@@ -4579,7 +4581,7 @@ do
                 end
                 return
             end
-            task.spawn(function()
+            coroutine.wrap(function()
                 local BombExplode = rs.BombEvents.BombExplode
                 explosionAuraConnection = RunService.Heartbeat:Connect(function()
                     local myChar = plr.Character
@@ -4602,7 +4604,7 @@ do
                         end
                     end
                 end)
-            end)
+            end)()
         end
     })
 
@@ -4653,7 +4655,7 @@ do
                 end
                 return
             end
-            task.spawn(function()
+            coroutine.wrap(function()
                 local BombExplode = rs.BombEvents.BombExplode
                 explosionSelfAuraConnection = RunService.Heartbeat:Connect(function()
                     local myChar = plr.Character
@@ -4676,7 +4678,7 @@ do
                         end
                     end
                 end)
-            end)
+            end)()
         end
     })
 
@@ -4715,7 +4717,7 @@ do
                 end
                 return
             end
-            task.spawn(function()
+            coroutine.wrap(function()
                 local RagdollRemote = rs.CharacterEvents.RagdollRemote
                 sniperAuraConnection = RunService.Heartbeat:Connect(function()
                     local myChar = plr.Character
@@ -4742,7 +4744,7 @@ do
                         end
                     end
                 end)
-            end)
+            end)()
         end
     })
 
@@ -4781,7 +4783,7 @@ do
                 end
                 return
             end
-            task.spawn(function()
+            coroutine.wrap(function()
                 clearCloudsAuraConnection = RunService.Heartbeat:Connect(function()
                     local myChar = plr.Character
                     local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
@@ -4810,7 +4812,7 @@ do
                         end
                     end
                 end)
-            end)
+            end)()
         end
     })
 
@@ -4849,7 +4851,7 @@ do
                 end
                 return
             end
-            task.spawn(function()
+            coroutine.wrap(function()
                 clearBoatsAuraConnection = RunService.Heartbeat:Connect(function()
                     local myChar = plr.Character
                     local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
@@ -4878,7 +4880,7 @@ do
                         end
                     end
                 end)
-            end)
+            end)()
         end
     })
 end
@@ -4911,7 +4913,7 @@ do
         Default = false,
         Callback = function(v)
             if v then
-                task.spawn(function()
+                coroutine.wrap(function()
                     while v and task.wait() do
                         if plr.Character then
                             for _, part in pairs(plr.Character:GetChildren()) do
@@ -4921,7 +4923,7 @@ do
                             end
                         end
                     end
-                end)
+                end)()
             else
                 if plr.Character then
                     for _, part in pairs(plr.Character:GetChildren()) do
@@ -4968,7 +4970,7 @@ do
         Default = false,
         Callback = function(v)
             if v then
-                task.spawn(function()
+                coroutine.wrap(function()
                     while v and task.wait(0.01) do
                         local char = plr.Character
                         if char and char:FindFirstChild("HumanoidRootPart") then
@@ -4976,7 +4978,7 @@ do
                             hrp.AssemblyLinearVelocity = Vector3.new(math.random(-500,500), math.random(100,500), math.random(-500,500))
                         end
                     end
-                end)
+                end)()
             end
         end
     })
