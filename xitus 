@@ -2,7 +2,7 @@
 -- VTX_HUB - VERSÃO COMPLETA CORRIGIDA
 -- ============================================================
 -- Todas as funcionalidades unificadas e corrigidas
---
+-- discord.gg/bdy4ssD3P4
 -- ============================================================
 
 gethui = function()
@@ -4391,8 +4391,7 @@ task.spawn(function()
     Frame.Size = UDim2.new(1, 0, 1, 0)
     Frame.BackgroundTransparency = 1
 
-    local SNOW_COUNT = 100
-    for i = 1, SNOW_COUNT do
+    local SNOW_COUNT = 100    for i = 1, SNOW_COUNT do
         local snow = Instance.new("ImageLabel", Frame)
         local corner = Instance.new("UICorner", snow)
         snow.AnchorPoint = Vector2.new(0.5, 0)
