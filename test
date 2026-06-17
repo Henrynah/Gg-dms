@@ -495,7 +495,7 @@ end
 do
     local box = Tabs.Visual:AddRightGroupbox("Best Shaders 2026", "sparkles")
     local Lighting = game:GetService("Lighting")
-    
+
     local original = {
         Brightness = Lighting.Brightness,
         Ambient = Lighting.Ambient,
@@ -2230,7 +2230,7 @@ do
     local box = Tabs.Main:AddRightGroupbox("Teleport")
 
     local EnableEffect = true
-    
+
     box:AddToggle("EnableTPEffect", {
         Text = "Ativar Efeito de Teleporte",
         Default = true,
@@ -2275,7 +2275,7 @@ function createEndermanTeleportEffect(startPos, endPos)
         startParticle.SpreadAngle = Vector2.new(60, 60)
         startParticle.Transparency = NumberSequence.new(0.3, 1)
         startParticle.Acceleration = Vector3.new(0, 3, 0)
-        
+
         local attach = Instance.new("Attachment", workspace.Terrain)
         attach.Position = startPos
         startParticle.Parent = attach
@@ -2331,7 +2331,7 @@ function createEndermanTeleportEffect(startPos, endPos)
                 arrivalParticle.SpreadAngle = Vector2.new(55, 55)
                 arrivalParticle.Transparency = NumberSequence.new(0.3, 1)
                 arrivalParticle.Acceleration = Vector3.new(0, 2, 0)
-                
+
                 local attach2 = Instance.new("Attachment", workspace.Terrain)
                 attach2.Position = endPos
                 arrivalParticle.Parent = attach2
@@ -2979,7 +2979,7 @@ do
 
                 local function ProcessItem(item)
                     if not item or not AllowedItems[item.Name] or not item:FindFirstChild("HoldPart") then return end
-                    
+
                     local holdPart = item.HoldPart
                     pcall(function()
                         holdPart.HoldItemRemoteFunction:InvokeServer(item, plr.Character)
@@ -3053,21 +3053,21 @@ do
             print("Remove Gucci it's already activated") 
             return 
         end
-        
+
         GucciAtivado = true
         print("Remove gucci on")
 
         loopConnection = task.spawn(function()
             while GucciAtivado do
                 local Seat = Seats[Sets.Name]
-                
+
                 if Seat and hum and HRP then
                     Seat:Sit(hum)
                     task.wait(0.03)
                     stvel(HRP)
                     HRP.CFrame = HRP.CFrame
                 end
-                
+
                 task.wait(0.15)
             end
         end)
@@ -3078,10 +3078,10 @@ do
             print("Remove gucci already deactivated") 
             return 
         end
-        
+
         GucciAtivado = false
         print("Remove gucci off")
-        
+
         if loopConnection then
             task.cancel(loopConnection)
             loopConnection = nil
@@ -3437,7 +3437,7 @@ do
         Default = false,
         Callback = function(v)
             PacketsEnabled = v
-            
+
             if v then
                 Library:Notify("Packet Lag Ativado", 3)
                 task.spawn(function()
@@ -3462,7 +3462,7 @@ do
                                 )
                             end
                         end)
-                        
+
                         task.wait(0.05)
                     end
                 end)
@@ -3711,12 +3711,12 @@ do
         local char = plr.Character
         if char and char:FindFirstChild("HumanoidRootPart") then
             local hrp = char.HumanoidRootPart
-            
+
             if bv and bv.Parent then
                 bv.Velocity = Vector3.zero
                 task.wait()
             end
-            
+
             if humanoid then
                 humanoid.PlatformStand = false
             end
@@ -3912,7 +3912,7 @@ end
 Players.PlayerAdded:Connect(function(pl)
     task.wait(1.5)
     if not BlacklistEnabled then return end
-    
+
     if table.find(Blacklist, pl.Name) or table.find(Blacklist, pl.DisplayName) then
         Library:Notify("⚠️ BLACKLIST: " .. pl.DisplayName .. " (" .. pl.Name .. ") entrou no servidor!", 6)
     end
@@ -4528,13 +4528,13 @@ task.spawn(function()
             local tweenGoal = {Position = UDim2.new(snow.Position.X.Scale, 0, 1, 0)}
             local tween = TweenService:Create(snow, tweenInfo, tweenGoal)
             tween:Play()
-            
+
             tween.Completed:Connect(function()
                 snow.Position = UDim2.new(math.random(), 0, -0.1, 0)
                 fall()
             end)
         end
-        
+
         fall()
     end
     local fr
