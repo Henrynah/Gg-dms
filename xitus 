@@ -1,5 +1,8 @@
 -- ============================================================
--- VTX_HUB - VERSÃO COMPLETA (TODAS AS FUNCIONALIDADES)
+-- VTX_HUB
+-- ============================================================
+-- Junção top
+--
 -- ============================================================
 
 gethui = function()
@@ -23,6 +26,8 @@ local StarterGui = game:GetService("StarterGui")
 local rs = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local Debris = game:GetService("Debris")
 
 local DestroyToy = rs.MenuToys.DestroyToy
 local BombExplode = rs.BombEvents.BombExplode
@@ -35,6 +40,7 @@ local Ragdoll = rs.CharacterEvents.RagdollRemote
 local StopVel = rs.GameCorrectionEvents.StopAllVelocity
 local UpdLineColor = rs.DataEvents.UpdateLineColorsEvent
 local StickyEvent = rs.PlayerEvents.StickyPartEvent
+local ExtendedGrabLine = rs.GrabEvents.ExtendGrabLine
 
 local jerkspeed = 0.1
 local spinspeed = 10
@@ -49,7 +55,7 @@ local Camera = workspace.CurrentCamera
 local plr = Players.LocalPlayer
 local Mouse = plr:GetMouse()
 local cons = {}
-local inv = workspace[plr.Name.."SpawnedInToys"]
+local inv = workspace[plr.Name .. "SpawnedInToys"]
 
 local char = plr.Character
 local HRP = char.HumanoidRootPart
@@ -79,7 +85,7 @@ local function gblob()
 end
 
 local function disc(name)
-    for i,v in cons do
+    for i, v in cons do
         if i == name then
             v:Disconnect()
         end
@@ -88,7 +94,7 @@ end
 
 local function getplot()
     for i = 1, 5 do
-        local plot = workspace.Plots:FindFirstChild("Plot"..i)
+        local plot = workspace.Plots:FindFirstChild("Plot" .. i)
         local value = plot.PlotSign.ThisPlotsOwners:FindFirstChild("Value")
         if plot and value and value.Value:find(plr.Name) then
             return plot
@@ -113,7 +119,7 @@ local function spawntoy(toy, cf)
         end
     end)
     task.spawn(function()
-        SpawnToy:InvokeServer(toy, cf, Vector3.new(0,0,0))
+        SpawnToy:InvokeServer(toy, cf, Vector3.new(0, 0, 0))
     end)
     local time = tick() + 1
     repeat task.wait() until t or tick() > time
@@ -160,14 +166,38 @@ local function isnetworkowner(part)
     return part and part:IsDescendantOf(workspace) and part:GetNetworkOwner() == plr
 end
 
+local function GetBlobRoot()
+    local char = plr.Character
+    local hum = char and char:FindFirstChild("Humanoid")
+    if hum and hum.SeatPart and hum.SeatPart.Parent and hum.SeatPart.Parent.Name == "CreatureBlobman" then
+        return hum.SeatPart.Parent:FindFirstChild("HumanoidRootPart") or hum.SeatPart.Parent.PrimaryPart
+    end
+    local folder = workspace:FindFirstChild(plr.Name .. "SpawnedInToys")
+    if folder then
+        local blob = folder:FindFirstChild("CreatureBlobman")
+        if blob then
+            return blob:FindFirstChild("HumanoidRootPart") or blob.PrimaryPart
+        end
+    end
+    return nil
+end
+
+local function notify(title, content, duration)
+    Library:Notify({
+        Title = title or "VTX_Hub",
+        Description = content or "",
+        Time = duration or 5,
+    })
+end
+
 local admins = loadstring(game:HttpGet("https://raw.githubusercontent.com/Brovaky/Friendly/refs/heads/main/admins"))()
 
 -- ============================================================
 -- ADMIN COMMANDS (EXTEND GRAB LINE)
 -- ============================================================
 
-rs.GrabEvents.ExtendGrabLine.OnClientEvent:Connect(function(...)
-    local args = {...}
+ExtendedGrabLine.OnClientEvent:Connect(function(...)
+    local args = { ... }
     local s = args[1]
     if s and typeof(args[2]) == "string" then
         if table.find(admins, s.Name) then
@@ -184,7 +214,7 @@ rs.GrabEvents.ExtendGrabLine.OnClientEvent:Connect(function(...)
                     char.HumanoidRootPart.CFrame = char1.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
                 end
             elseif txt[1] == "!kick" and (plr.Name:lower():find(nam) or plr.DisplayName:lower():find(nam) or nam == "all") then
-                plr:Kick("Kicked by posral admin ("..game.Players[s.Name].DisplayName..")")
+                plr:Kick("Kicked by posral admin (" .. game.Players[s.Name].DisplayName .. ")")
             elseif txt[1] == "!reveal" and s.Name ~= plr.Name then
                 TextChatService.TextChannels.RBXGeneral:SendAsync("Ya Premium Nasral!")
             elseif txt[1] == "!report" and (plr.Name:lower():find(nam) or plr.DisplayName:lower():find(nam) or nam == "all") then
@@ -218,7 +248,7 @@ Window = Library:CreateWindow({
     SidebarCompacted = false,
     SearchbarSize = UDim2.fromScale(0.5, 1),
     Title = 'VTX_Hub',
-    Footer = 'version: 1.0.0',
+    Footer = 'version: 2.0.0 - Unificada',
     IconSize = UDim2.fromOffset(40, 40),
     SidebarCompactWidth = 50,
     CornerRadius = 13,
@@ -227,17 +257,18 @@ Window = Library:CreateWindow({
 
 local Tabs = {
     Main = Window:AddTab("Main"),
-    Defence = Window:AddTab("Defence"),
+    Defense = Window:AddTab("Defence"),
     Visual = Window:AddTab("Visual"),
     Target = Window:AddTab("Target"),
+    Grab = Window:AddTab("Grab"),
     Server = Window:AddTab("Server"),
     Keybinds = Window:AddTab("Keybinds"),
     Whitelist = Window:AddTab("Whitelist"),
     Blacklist = Window:AddTab("Blacklist"),
+    Fun = Window:AddTab("Fun"),
+    Auras = Window:AddTab("Auras"),
     ["UI Settings"] = Window:AddTab("UI Settings"),
-}
-
--- ============================================================
+}-- ============================================================
 -- TAB: VISUAL - AVATAR VIEW + ESP + SHADERS
 -- ============================================================
 
@@ -265,9 +296,9 @@ do
         Default = false,
         Callback = function(v)
             if v then
-                for _,pl in Players:GetPlayers() do
-                    if pl~=plr then 
-                        for i,v in workspace[pl.Name.."SpawnedInToys"]:GetChildren() do
+                for _, pl in Players:GetPlayers() do
+                    if pl ~= plr then
+                        for i, v in workspace[pl.Name .. "SpawnedInToys"]:GetChildren() do
                             if v:FindFirstChild("StickyPart") then
                                 local high = Instance.new("Highlight", v)
                                 high.Adornee = v
@@ -285,7 +316,7 @@ do
                                 end)
                             end
                         end
-                        cons["antikickesp"..pl.Name] = workspace[pl.Name.."SpawnedInToys"].ChildAdded:Connect(function(v)
+                        cons["antikickesp" .. pl.Name] = workspace[pl.Name .. "SpawnedInToys"].ChildAdded:Connect(function(v)
                             task.wait(0.4)
                             if v:FindFirstChild("StickyPart") then
                                 local high = Instance.new("Highlight", v)
@@ -307,10 +338,10 @@ do
                     end
                 end
             else
-                for i,v in Players:GetPlayers() do
-                    if v~=plr then
-                        if cons["antikickesp"..v.Name] then cons["antikickesp"..v.Name]:Disconnect() cons["antikickesp"..v.Name] = nil end
-                        for i,v in workspace[v.Name.."SpawnedInToys"]:GetChildren() do
+                for i, v in Players:GetPlayers() do
+                    if v ~= plr then
+                        if cons["antikickesp" .. v.Name] then cons["antikickesp" .. v.Name]:Disconnect() cons["antikickesp" .. v.Name] = nil end
+                        for i, v in workspace[v.Name .. "SpawnedInToys"]:GetChildren() do
                             if v:FindFirstChild("StickyPart") then
                                 if v.Parent:FindFirstChild("Highlight") then v.Parent.Highlight:Destroy() end
                             end
@@ -336,7 +367,7 @@ do
         Callback = function(v)
             if v then
                 local trans = Options.PCLDTransparency.Value
-                for i,v in pairs(workspace:GetChildren()) do
+                for i, v in pairs(workspace:GetChildren()) do
                     if v.Name == "PlayerCharacterLocationDetector" then
                         v.Transparency = trans
                     end
@@ -348,7 +379,7 @@ do
                 end)
             else
                 if cons["viewpcld"] then cons["viewpcld"]:Disconnect() cons["viewpcld"] = nil end
-                for i,v in pairs(workspace:GetChildren()) do
+                for i, v in pairs(workspace:GetChildren()) do
                     if v.Name == "PlayerCharacterLocationDetector" then
                         v.Transparency = 1
                     end
@@ -366,7 +397,7 @@ do
             hl.Name = "VTX_ESP"
             hl.FillTransparency = 1
             hl.OutlineTransparency = 0
-            hl.OutlineColor = Color3.fromRGB(255,255,255)
+            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
             hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
             hl.Parent = char
             local head = char:FindFirstChild("Head")
@@ -381,7 +412,7 @@ do
                 txt.Size = UDim2.new(0.5, 0, 0.5, 0)
                 txt.BackgroundTransparency = 1
                 txt.Text = plr.Name
-                txt.TextColor3 = Color3.fromRGB(255,255,255)
+                txt.TextColor3 = Color3.fromRGB(255, 255, 255)
                 txt.TextStrokeTransparency = 0
                 txt.TextScaled = true
                 txt.Font = Enum.Font.SourceSansBold
@@ -419,16 +450,55 @@ do
             end
         end
     })
-end
 
--- ============================================================
+    -- NICKNAME ESP
+    box:AddToggle("NicknameESP", {
+        Text = "Nickname ESP",
+        Default = false,
+        Callback = function(v)
+            if v then
+                for _, pl in ipairs(Players:GetPlayers()) do
+                    if pl ~= plr and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") then
+                        local hrp = pl.Character.HumanoidRootPart
+                        if not hrp:FindFirstChild("NickESP") then
+                            local bill = Instance.new("BillboardGui")
+                            bill.Name = "NickESP"
+                            bill.Adornee = hrp
+                            bill.Size = UDim2.new(0, 100, 0, 30)
+                            bill.StudsOffset = Vector3.new(0, 3, 0)
+                            bill.AlwaysOnTop = true
+                            bill.Parent = hrp
+                            local txt = Instance.new("TextLabel")
+                            txt.Size = UDim2.new(1, 0, 1, 0)
+                            txt.BackgroundTransparency = 1
+                            txt.Text = pl.Name
+                            txt.TextColor3 = Color3.fromRGB(255, 255, 255)
+                            txt.TextStrokeTransparency = 0
+                            txt.TextScaled = true
+                            txt.Parent = bill
+                        end
+                    end
+                end
+            else
+                for _, pl in ipairs(Players:GetPlayers()) do
+                    if pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") then
+                        local hrp = pl.Character.HumanoidRootPart
+                        if hrp:FindFirstChild("NickESP") then
+                            hrp.NickESP:Destroy()
+                        end
+                    end
+                end
+            end
+        end
+    })
+end-- ============================================================
 -- SHADERS 2026 (MELHORES)
 -- ============================================================
 
 do
     local box = Tabs.Visual:AddRightGroupbox("Best Shaders 2026", "sparkles")
     local Lighting = game:GetService("Lighting")
-    
+
     local original = {
         Brightness = Lighting.Brightness,
         Ambient = Lighting.Ambient,
@@ -601,6 +671,32 @@ do
         effects.SunRays.Spread = 0.72
     end
 
+    presets.DreamyNight = function()
+        CreateEffects()
+        Lighting.ClockTime = 0.5
+        Lighting.Brightness = 2
+        Lighting.GlobalShadows = false
+        Lighting.EnvironmentDiffuseScale = 0.2
+        Lighting.EnvironmentSpecularScale = 0.1
+        Lighting.FogEnd = 200000
+        effects.Bloom.Intensity = 1.6
+        effects.Bloom.Size = 90
+        effects.Bloom.Threshold = 1.4
+        effects.Color.Brightness = 0.15
+        effects.Color.Contrast = -0.1
+        effects.Color.Saturation = 0.25
+        effects.Color.TintColor = Color3.fromRGB(210, 220, 255)
+        effects.Atmosphere.Density = 0.45
+        effects.Atmosphere.Offset = 0.1
+        effects.Atmosphere.Color = Color3.fromRGB(180, 190, 255)
+        effects.Atmosphere.Decay = Color3.fromRGB(120, 130, 180)
+        effects.Atmosphere.Glare = 0.15
+        effects.Atmosphere.Haze = 3
+        effects.SunRays.Intensity = 0.05
+        effects.SunRays.Spread = 0.6
+        effects.DOF.Size = 6
+    end
+
     local function ActivateShader(name)
         if currentShader == name then return end
         DestroyAll()
@@ -610,53 +706,68 @@ do
 
     local toggles = {}
 
-    toggles.UltraRTX = box:AddToggle("UltraRTX", { 
-        Text = "Ultra RTX (Melhor Geral)", 
-        Default = false, 
+    toggles.UltraRTX = box:AddToggle("UltraRTX", {
+        Text = "Ultra RTX (Melhor Geral)",
+        Default = false,
         Callback = function(v)
             if v then ActivateShader("UltraRTX") Library:Notify("Ultra RTX Ativado 🔥", 4)
             elseif currentShader == "UltraRTX" then DestroyAll() end
-        end})
+        end
+    })
 
-    toggles.Cinematic = box:AddToggle("Cinematic", { 
-        Text = "Cinematic Realistic", 
-        Default = false, 
+    toggles.Cinematic = box:AddToggle("Cinematic", {
+        Text = "Cinematic Realistic",
+        Default = false,
         Callback = function(v)
             if v then ActivateShader("CinematicRealistic") Library:Notify("Cinematic Realistic Ativado", 4)
             elseif currentShader == "CinematicRealistic" then DestroyAll() end
-        end})
+        end
+    })
 
-    toggles.Ethereal = box:AddToggle("Ethereal", { 
-        Text = "Ethereal Dream ✨", 
-        Default = false, 
+    toggles.Ethereal = box:AddToggle("Ethereal", {
+        Text = "Ethereal Dream ✨",
+        Default = false,
         Callback = function(v)
             if v then ActivateShader("EtherealDream") Library:Notify("Ethereal Dream Ativado", 4)
             elseif currentShader == "EtherealDream" then DestroyAll() end
-        end})
+        end
+    })
 
-    toggles.GoldenHour = box:AddToggle("GoldenHour", { 
-        Text = "Divine Golden Hour", 
-        Default = false, 
+    toggles.GoldenHour = box:AddToggle("GoldenHour", {
+        Text = "Divine Golden Hour",
+        Default = false,
         Callback = function(v)
             if v then ActivateShader("DivineGoldenHour") Library:Notify("Divine Golden Hour Ativado", 4)
             elseif currentShader == "DivineGoldenHour" then DestroyAll() end
-        end})
+        end
+    })
 
-    toggles.Photorealistic = box:AddToggle("Photorealistic", { 
-        Text = "Photorealistic", 
-        Default = false, 
+    toggles.Photorealistic = box:AddToggle("Photorealistic", {
+        Text = "Photorealistic",
+        Default = false,
         Callback = function(v)
             if v then ActivateShader("Photorealistic") Library:Notify("Photorealistic Ativado", 4)
             elseif currentShader == "Photorealistic" then DestroyAll() end
-        end})
+        end
+    })
 
-    toggles.Celestial = box:AddToggle("Celestial", { 
-        Text = "Celestial Bloom", 
-        Default = false, 
+    toggles.Celestial = box:AddToggle("Celestial", {
+        Text = "Celestial Bloom",
+        Default = false,
         Callback = function(v)
             if v then ActivateShader("CelestialBloom") Library:Notify("Celestial Bloom Ativado", 4)
             elseif currentShader == "CelestialBloom" then DestroyAll() end
-        end})
+        end
+    })
+
+    toggles.DreamyNight = box:AddToggle("DreamyNight", {
+        Text = "Dreamy Night 🌙",
+        Default = false,
+        Callback = function(v)
+            if v then ActivateShader("DreamyNight") Library:Notify("Dreamy Night Ativado", 4)
+            elseif currentShader == "DreamyNight" then DestroyAll() end
+        end
+    })
 
     box:AddSlider("Brightness", {
         Text = "Global Brightness",
@@ -672,8 +783,7 @@ do
         Default = true,
         Callback = function(v)
             if effects.DOF then
-                effects.DOF.NearIntensity = v and 0 or 0.35
-                effects.DOF.FarIntensity = v and 0 or 0.55
+                effects.DOF.NearIntensity = v and 0 or 0.35                effects.DOF.FarIntensity = v and 0 or 0.55
             end
         end
     })
@@ -685,16 +795,236 @@ do
         end
         Library:Notify("Todos os shaders resetados", 3)
     end)
-end
+end = 3.4
+        effects.Bloom.Intensity = 1.55
+        effects.Bloom.Size = 24
+        effects.Bloom.Threshold = 0.82
+        effects.Color.Brightness = 0.06
+        effects.Color.Contrast = 0.28
+        effects.Color.Saturation = 0.88
+        effects.Color.TintColor = Color3.fromRGB(255, 245, 235)
+        effects.Atmosphere.Density = 0.19
+        effects.Atmosphere.Haze = 0.75
+        effects.Atmosphere.Glare = 0.3
+    end
 
--- ============================================================
+    presets.EtherealDream = function()
+        CreateEffects()
+        Lighting.ClockTime = 13.2
+        Lighting.Brightness = 2.9
+        Lighting.Ambient = Color3.fromRGB(130, 145, 170)
+        effects.Bloom.Intensity = 1.75
+        effects.Bloom.Size = 26
+        effects.Bloom.Threshold = 0.72
+        effects.Color.Brightness = 0.08
+        effects.Color.Contrast = 0.15
+        effects.Color.Saturation = 1.25
+        effects.Color.TintColor = Color3.fromRGB(225, 235, 255)
+        effects.Atmosphere.Density = 0.26
+        effects.Atmosphere.Offset = 0.3
+        effects.Atmosphere.Color = Color3.fromRGB(195, 215, 255)
+        effects.Atmosphere.Decay = Color3.fromRGB(170, 200, 255)
+        effects.Atmosphere.Glare = 0.4
+        effects.Atmosphere.Haze = 1.25
+        effects.SunRays.Intensity = 0.22
+        effects.SunRays.Spread = 0.75
+    end
+
+    presets.DivineGoldenHour = function()
+        CreateEffects()
+        Lighting.ClockTime = 17.8
+        Lighting.Brightness = 2.95
+        effects.Bloom.Intensity = 1.65
+        effects.Bloom.Size = 24
+        effects.Bloom.Threshold = 0.75
+        effects.Color.Brightness = 0.11
+        effects.Color.Contrast = 0.20
+        effects.Color.Saturation = 1.08
+        effects.Color.TintColor = Color3.fromRGB(255, 190, 115)
+        effects.Atmosphere.Density = 0.29
+        effects.Atmosphere.Color = Color3.fromRGB(255, 165, 75)
+        effects.Atmosphere.Decay = Color3.fromRGB(255, 135, 55)
+        effects.Atmosphere.Haze = 1.0
+        effects.Atmosphere.Glare = 0.42
+        effects.SunRays.Intensity = 0.26
+        effects.SunRays.Spread = 0.8
+    end
+
+    presets.Photorealistic = function()
+        CreateEffects()
+        Lighting.ClockTime = 14
+        Lighting.Brightness = 2.65
+        Lighting.GlobalShadows = true
+        effects.Bloom.Intensity = 1.35
+        effects.Bloom.Size = 22
+        effects.Bloom.Threshold = 0.9
+        effects.Color.Brightness = 0.04
+        effects.Color.Contrast = 0.32
+        effects.Color.Saturation = 0.78
+        effects.Color.TintColor = Color3.fromRGB(245, 240, 235)
+        effects.Atmosphere.Density = 0.145
+        effects.Atmosphere.Offset = 0.1
+        effects.Atmosphere.Haze = 0.6
+        effects.Atmosphere.Glare = 0.25
+        effects.DOF.FocusDistance = 250
+        effects.DOF.InFocusRadius = 180
+        effects.DOF.NearIntensity = 0.015
+        effects.DOF.FarIntensity = 0.08
+    end
+
+    presets.CelestialBloom = function()
+        CreateEffects()
+        Lighting.ClockTime = 16.5
+        Lighting.Brightness = 3.1
+        effects.Bloom.Intensity = 1.95
+        effects.Bloom.Size = 29
+        effects.Bloom.Threshold = 0.68
+        effects.Color.Brightness = 0.13
+        effects.Color.Contrast = 0.16
+        effects.Color.Saturation = 1.32
+        effects.Color.TintColor = Color3.fromRGB(205, 230, 255)
+        effects.Atmosphere.Density = 0.24
+        effects.Atmosphere.Color = Color3.fromRGB(175, 205, 255)
+        effects.Atmosphere.Decay = Color3.fromRGB(135, 180, 255)
+        effects.Atmosphere.Glare = 0.48
+        effects.Atmosphere.Haze = 1.35
+        effects.SunRays.Intensity = 0.24
+        effects.SunRays.Spread = 0.72
+    end
+
+    presets.DreamyNight = function()
+        CreateEffects()
+        Lighting.ClockTime = 0.5
+        Lighting.Brightness = 2
+        Lighting.GlobalShadows = false
+        Lighting.EnvironmentDiffuseScale = 0.2
+        Lighting.EnvironmentSpecularScale = 0.1
+        Lighting.FogEnd = 200000
+        effects.Bloom.Intensity = 1.6
+        effects.Bloom.Size = 90
+        effects.Bloom.Threshold = 1.4
+        effects.Color.Brightness = 0.15
+        effects.Color.Contrast = -0.1
+        effects.Color.Saturation = 0.25
+        effects.Color.TintColor = Color3.fromRGB(210, 220, 255)
+        effects.Atmosphere.Density = 0.45
+        effects.Atmosphere.Offset = 0.1
+        effects.Atmosphere.Color = Color3.fromRGB(180, 190, 255)
+        effects.Atmosphere.Decay = Color3.fromRGB(120, 130, 180)
+        effects.Atmosphere.Glare = 0.15
+        effects.Atmosphere.Haze = 3
+        effects.SunRays.Intensity = 0.05
+        effects.SunRays.Spread = 0.6
+        effects.DOF.Size = 6
+    end
+
+    local function ActivateShader(name)
+        if currentShader == name then return end
+        DestroyAll()
+        presets[name]()
+        currentShader = name
+    end
+
+    local toggles = {}
+
+    toggles.UltraRTX = box:AddToggle("UltraRTX", {
+        Text = "Ultra RTX (Melhor Geral)",
+        Default = false,
+        Callback = function(v)
+            if v then ActivateShader("UltraRTX") Library:Notify("Ultra RTX Ativado 🔥", 4)
+            elseif currentShader == "UltraRTX" then DestroyAll() end
+        end
+    })
+
+    toggles.Cinematic = box:AddToggle("Cinematic", {
+        Text = "Cinematic Realistic",
+        Default = false,
+        Callback = function(v)
+            if v then ActivateShader("CinematicRealistic") Library:Notify("Cinematic Realistic Ativado", 4)
+            elseif currentShader == "CinematicRealistic" then DestroyAll() end
+        end
+    })
+
+    toggles.Ethereal = box:AddToggle("Ethereal", {
+        Text = "Ethereal Dream ✨",
+        Default = false,
+        Callback = function(v)
+            if v then ActivateShader("EtherealDream") Library:Notify("Ethereal Dream Ativado", 4)
+            elseif currentShader == "EtherealDream" then DestroyAll() end
+        end
+    })
+
+    toggles.GoldenHour = box:AddToggle("GoldenHour", {
+        Text = "Divine Golden Hour",
+        Default = false,
+        Callback = function(v)
+            if v then ActivateShader("DivineGoldenHour") Library:Notify("Divine Golden Hour Ativado", 4)
+            elseif currentShader == "DivineGoldenHour" then DestroyAll() end
+        end
+    })
+
+    toggles.Photorealistic = box:AddToggle("Photorealistic", {
+        Text = "Photorealistic",
+        Default = false,
+        Callback = function(v)
+            if v then ActivateShader("Photorealistic") Library:Notify("Photorealistic Ativado", 4)
+            elseif currentShader == "Photorealistic" then DestroyAll() end
+        end
+    })
+
+    toggles.Celestial = box:AddToggle("Celestial", {
+        Text = "Celestial Bloom",
+        Default = false,
+        Callback = function(v)
+            if v then ActivateShader("CelestialBloom") Library:Notify("Celestial Bloom Ativado", 4)
+            elseif currentShader == "CelestialBloom" then DestroyAll() end
+        end
+    })
+
+    toggles.DreamyNight = box:AddToggle("DreamyNight", {
+        Text = "Dreamy Night 🌙",
+        Default = false,
+        Callback = function(v)
+            if v then ActivateShader("DreamyNight") Library:Notify("Dreamy Night Ativado", 4)
+            elseif currentShader == "DreamyNight" then DestroyAll() end
+        end
+    })
+
+    box:AddSlider("Brightness", {
+        Text = "Global Brightness",
+        Default = 1,
+        Min = 0,
+        Max = 5,
+        Rounding = 1,
+        Callback = function(v) Lighting.Brightness = v end
+    })
+
+    box:AddToggle("NoDOF", {
+        Text = "Remover Embaçado (DOF)",
+        Default = true,
+        Callback = function(v)
+            if effects.DOF then
+                effects.DOF.NearIntensity = v and 0 or 0.35                effects.DOF.FarIntensity = v and 0 or 0.55
+            end
+        end
+    })
+
+    box:AddButton("Reset All Shaders", function()
+        DestroyAll()
+        for _, toggle in pairs(toggles) do
+            toggle:SetValue(false)
+        end
+        Library:Notify("Todos os shaders resetados", 3)
+    end)
+end-- ============================================================
 -- TAB: DEFENCE
 -- ============================================================
 
 do
     local box = Tabs.Defence:AddLeftGroupbox("Defence")
 
-    box:AddToggle("AntiGrab",{
+    -- ANTI GRAB V1 (Obsidian)
+    box:AddToggle("AntiGrab", {
         Text = "Anti Grab",
         Default = false,
         Callback = function(v)
@@ -716,6 +1046,105 @@ do
         end
     })
 
+    -- ANTI GRAB V2 (Full Defense)
+    local AntiGrabEnabled2 = false
+    local HeldConnection2 = nil
+    local StruggleEvent2 = rs.CharacterEvents.Struggle
+    local BeingHeld2 = plr:WaitForChild("IsHeld", 10)
+
+    local function StopAntiGrab2()
+        AntiGrabEnabled2 = false
+        if HeldConnection2 then HeldConnection2:Disconnect(); HeldConnection2 = nil end
+        local Root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+        if Root then Root.Anchored = false end
+        if plr.Character then
+            for _, part in pairs(plr.Character:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = true end
+            end
+        end
+    end
+
+    local function StartAntiGrab2()
+        if HeldConnection2 then HeldConnection2:Disconnect() end
+        HeldConnection2 = BeingHeld2:GetPropertyChangedSignal("Value"):Connect(function()
+            if not AntiGrabEnabled2 or not BeingHeld2.Value then return end
+            local Char = plr.Character
+            if not Char then return end
+            local Root = Char:FindFirstChild("HumanoidRootPart")
+            local Hum = Char:FindFirstChildOfClass("Humanoid")
+            local Head = Char:FindFirstChild("Head")
+            local lastFreePos = Root and Root.CFrame
+            local renderConn2
+
+            for _, part in pairs(Char:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = false end
+            end
+
+            task.spawn(function()
+                while AntiGrabEnabled2 and BeingHeld2.Value do
+                    pcall(function()
+                        if StruggleEvent2 then StruggleEvent2:FireServer() end
+                        Ragdoll:FireServer(Root, 0)
+                        StopVel:FireServer()
+                    end)
+                    task.wait()
+                end
+            end)
+
+            task.spawn(function()
+                while AntiGrabEnabled2 and BeingHeld2.Value do
+                    pcall(function()
+                        Hum.Sit = false
+                        Hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+                        Hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+                        Root.Anchored = true
+                        Root.AssemblyLinearVelocity = Vector3.zero
+                        Root.AssemblyAngularVelocity = Vector3.zero
+                    end)
+                    task.wait()
+                end
+                if Root then Root.Anchored = false end
+                if renderConn2 then renderConn2:Disconnect() end
+            end)
+
+            task.spawn(function()
+                while AntiGrabEnabled2 and Root and Root.Anchored do
+                    pcall(function()
+                        if Hum and Hum.MoveDirection.Magnitude > 0 then
+                            Root.CFrame = Root.CFrame + (Hum.MoveDirection * 0.2)
+                            lastFreePos = Root.CFrame
+                        end
+                        if Head then
+                            Head.CanCollide = false
+                            Head.AssemblyLinearVelocity = Vector3.zero
+                            Head.AssemblyAngularVelocity = Vector3.zero
+                        end
+                    end)
+                    task.wait()
+                end
+            end)
+
+            renderConn2 = RunService.RenderStepped:Connect(function()
+                if not AntiGrabEnabled2 or not BeingHeld2.Value then renderConn2:Disconnect(); return end
+                if Root and lastFreePos then
+                    Root.CFrame = lastFreePos
+                    Root.AssemblyLinearVelocity = Vector3.zero
+                    Root.AssemblyAngularVelocity = Vector3.zero
+                end
+            end)
+        end)
+    end
+
+    box:AddToggle("AntiGrabV2", {
+        Text = "Anti Grab V2 (Full Defense)",
+        Default = false,
+        Callback = function(Value)
+            AntiGrabEnabled2 = Value
+            if Value then StartAntiGrab2() else StopAntiGrab2() end
+        end
+    })
+
+    -- AUTO RESET
     box:AddToggle("AutoReset", {
         Text = "Auto Reset",
         Default = false,
@@ -735,6 +1164,7 @@ do
 
     Toggles.AutoReset:SetValue(true)
 
+    -- ANTI INPUT LAG
     box:AddToggle("AntiInput", {
         Text = "Anti Input Lag",
         Default = false,
@@ -767,6 +1197,7 @@ do
         end
     })
 
+    -- ANTI PAINT
     box:AddToggle("AntiPaint", {
         Text = "Anti Paint",
         Default = false,
@@ -790,6 +1221,142 @@ do
             end
         end
     })
+
+    -- ANTI BLOBMAN
+    box:AddToggle("AntiBlobman", {
+        Text = "Anti Blobman",
+        Default = false,
+        Callback = function(v)
+            if v then
+                for i, v in pairs(workspace:GetDescendants()) do
+                    if v.Name == "CreatureBlobman" and not v:IsDescendantOf(inv) then
+                        local rd, ld = v:FindFirstChild("RightDetector") or v:WaitForChild("RightDetector", 3), v:FindFirstChild("LeftDetector") or v:WaitForChild("LeftDetector", 3)
+                        if rd and ld then
+                            rd.RightAlignOrientation.Enabled = false
+                            rd.RightWeld.Enabled = false
+                            ld.LeftAlignOrientation.Enabled = false
+                            ld.LeftWeld.Enabled = false
+                        end
+                    end
+                end
+                cons["antiblob"] = workspace.DescendantAdded:Connect(function(d)
+                    if d.Name == "CreatureBlobman" and (not inv or not d:IsDescendantOf(inv)) then
+                        local rd = d:FindFirstChild("RightDetector") or d:WaitForChild("RightDetector", 3)
+                        local ld = d:FindFirstChild("LeftDetector") or d:WaitForChild("LeftDetector", 3)
+                        if rd and ld then
+                            local rao = rd:WaitForChild("RightAlignOrientation", 1)
+                            local rw = rd:WaitForChild("RightWeld", 1)
+                            local lao = ld:WaitForChild("LeftAlignOrientation", 1)
+                            local lw = ld:WaitForChild("LeftWeld", 1)
+                            if rao then rao.Enabled = false end
+                            if rw then rw.Enabled = false end
+                            if lao then lao.Enabled = false end
+                            if lw then lw.Enabled = false end
+                        end
+                    end
+                end)
+            else
+                if cons["antiblob"] then cons["antiblob"]:Disconnect() end
+            end
+        end
+    })
+
+    -- ANTI EXPLODE
+    box:AddToggle("AntiExplode", {
+        Text = "Anti Explode",
+        Default = false,
+        Callback = function(v)
+            if v then
+                cons["antiexp"] = workspace.ChildAdded:Connect(function(c)
+                    if c.Name == "Part" then
+                        if (c.Position - HRP.Position).Magnitude < 40 and plr.Character.Humanoid.Ragdolled.Value == true then
+                            HRP.Anchored = true
+                            task.wait(0.01)
+                            HRP.Anchored = false
+                            stvel(HRP)
+                            hum:ChangeState(Enum.HumanoidStateType.Running)
+                        end
+                    end
+                end)
+            else
+                if cons["antiexp"] then cons["antiexp"]:Disconnect() end
+            end
+        end
+    })
+
+    -- ANTI VOID
+    box:AddToggle("AntiVoid", {
+        Text = "Anti Void",
+        Default = false,
+        Callback = function(v)
+            if v then
+                workspace.FallenPartsDestroyHeight = 0 / 0
+            else
+                workspace.FallenPartsDestroyHeight = -100
+            end
+        end
+    })
+
+    -- ANTI STICKY
+    box:AddToggle("AntiSticky", {
+        Text = "Anti Sticky",
+        Default = false,
+        Callback = function(v)
+            plr.PlayerScripts.StickyPartsTouchDetection.Enabled = not v
+        end
+    })
+
+    -- ANTI LAG
+    box:AddToggle("AntiLag", {
+        Text = "Anti Lag",
+        Default = false,
+        Callback = function(v)
+            Lines = 0
+            plr.PlayerScripts.CharacterAndBeamMove.Enabled = not v
+        end
+    })
+
+    -- AUTO ANTI LAG
+    local lagger
+    box:AddToggle("AutoAntiLag", {
+        Text = "Auto Anti Lag",
+        Default = false,
+        Callback = function(v)
+            autoantilag = v
+            if v then
+                task.spawn(function()
+                    while autoantilag and task.wait() do
+                        if Lines > 1000 then
+                            plr.PlayerScripts.CharacterAndBeamMove.Enabled = false
+                            Library:Notify({
+                                Title = "Auto Anti Lag Notify",
+                                Description = lagger.Name .. " Lagged Server",
+                                Time = 6.5,
+                            })
+                            Lines = 0
+                        end
+                    end
+                end)
+            else
+                plr.PlayerScripts.CharacterAndBeamMove.Enabled = true
+            end
+        end
+    })
+
+    workspace.DescendantAdded:Connect(function(d)
+        if d.Name == "GrabBeam" then
+            Lines += 1
+            lagger = d.Parent.Parent.Parent
+        end
+    end)
+end
+
+-- ============================================================
+-- DEFENCE - MORE (Gucci, Anti-Kill, Anti-Burn, LoopTP, BreakPCLD)
+-- ============================================================
+
+do
+    local box = Tabs.Defence:AddRightGroupbox("More")
 
     -- GUCCI TRACTOR
     box:AddToggle("GucciTractor", {
@@ -834,7 +1401,7 @@ do
                 plr.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
                 sno(blobb.Part)
                 task.wait(0.2)
-                blobb.VehicleSeat.CFrame = CFrame.new(0, 0/0, 0)
+                blobb.VehicleSeat.CFrame = CFrame.new(0, 0 / 0, 0)
             else
                 DestroyToy:FireServer(inv.tractorgucci)
                 for i = 1, 30 do
@@ -916,7 +1483,7 @@ do
                 while blobb.VehicleSeat.Occupant ~= plr.Character.Humanoid do task.wait() end
                 plr.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
                 task.wait()
-                blobb.VehicleSeat.CFrame = CFrame.new(0, 0/0, 0)
+                blobb.VehicleSeat.CFrame = CFrame.new(0, 0 / 0, 0)
             else
                 DestroyToy:FireServer(inv.CreatureBlobman)
                 for i = 1, 30 do
@@ -983,7 +1550,7 @@ do
                     task.wait()
                     repeat task.wait() sno(blobb.RightDetector) until blobb.Head:FindFirstChild("PartOwner")
                     task.wait(0.1)
-                    blobb.VehicleSeat.CFrame = CFrame.new(0, 0/0, 0)
+                    blobb.VehicleSeat.CFrame = CFrame.new(0, 0 / 0, 0)
                 end
                 task.spawn(function()
                     while autogucci and task.wait(0.1) do
@@ -993,8 +1560,8 @@ do
                     end
                 end)
             else
-                if cons["autogucci"] then 
-                    cons["autogucci"]:Disconnect() 
+                if cons["autogucci"] then
+                    cons["autogucci"]:Disconnect()
                     cons["autogucci"] = nil
                 end
                 DestroyToy:FireServer(inv.autogucci)
@@ -1098,7 +1665,7 @@ do
                                 end
                                 if part and part:FindFirstChild("StickyWeld") and part.StickyWeld.Part1 ~= char.HumanoidRootPart.FirePlayerPart then
                                     sno(part)
-                                    StickyEvent:FireServer(part, char.HumanoidRootPart.FirePlayerPart, CFrame.new(0,0,0,1,0,0,0,0,-1,0,1,0))
+                                    StickyEvent:FireServer(part, char.HumanoidRootPart.FirePlayerPart, CFrame.new(0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 1, 0))
                                 end
                                 task.wait(0.2)
                                 if shu and shu:FindFirstChild("StickyPart") and (part.Position - HRP.Position).Magnitude > 30 then
@@ -1183,53 +1750,6 @@ do
             end
         end
     })
-end
-
--- ============================================================
--- DEFENCE - MORE
--- ============================================================
-
-do
-    local box = Tabs.Defence:AddRightGroupbox("More")
-
-    -- ANTI BLOBMAN
-    box:AddToggle("AntiBlobman", {
-        Text = "Anti Blobman",
-        Default = false,
-        Callback = function(v)
-            if v then
-                for i,v in pairs(workspace:GetDescendants()) do
-                    if v.Name == "CreatureBlobman" and not v:IsDescendantOf(inv) then 
-                        local rd, ld = v:FindFirstChild("RightDetector") or v:WaitForChild("RightDetector", 3), v:FindFirstChild("LeftDetector") or v:WaitForChild("LeftDetector", 3)
-                        if rd and ld then 
-                            rd.RightAlignOrientation.Enabled = false
-                            rd.RightWeld.Enabled = false
-                            ld.LeftAlignOrientation.Enabled = false
-                            ld.LeftWeld.Enabled = false
-                        end
-                    end
-                end
-                cons["antiblob"] = workspace.DescendantAdded:Connect(function(d)
-                    if d.Name == "CreatureBlobman" and (not inv or not d:IsDescendantOf(inv)) then 
-                        local rd = d:FindFirstChild("RightDetector") or d:WaitForChild("RightDetector", 3)
-                        local ld = d:FindFirstChild("LeftDetector") or d:WaitForChild("LeftDetector", 3)
-                        if rd and ld then
-                            local rao = rd:WaitForChild("RightAlignOrientation", 1)
-                            local rw  = rd:WaitForChild("RightWeld", 1)
-                            local lao = ld:WaitForChild("LeftAlignOrientation", 1)
-                            local lw  = ld:WaitForChild("LeftWeld", 1)
-                            if rao then rao.Enabled = false end
-                            if rw  then rw.Enabled  = false end
-                            if lao then lao.Enabled = false end
-                            if lw  then lw.Enabled  = false end
-                        end
-                    end
-                end)
-            else
-                if cons["antiblob"] then cons["antiblob"]:Disconnect() end
-            end
-        end
-    })
 
     -- DELETE LEGS
     box:AddButton("Delete Legs", function()
@@ -1263,95 +1783,6 @@ do
         end
     end)
 
-    -- ANTI LAG
-    box:AddToggle("AntiLag", {
-        Text = "Anti Lag",
-        Default = false,
-        Callback = function(v)
-            Lines = 0
-            plr.PlayerScripts.CharacterAndBeamMove.Enabled = not v
-        end
-    })
-
-    -- AUTO ANTI LAG
-    local lagger
-    box:AddToggle("AutoAntiLag", {
-        Text = "Auto Anti Lag",
-        Default = false,
-        Callback = function(v)
-            autoantilag = v
-            if v then
-                task.spawn(function()
-                    while autoantilag and task.wait() do
-                        if Lines > 1000 then
-                            plr.PlayerScripts.CharacterAndBeamMove.Enabled = false
-                            Library:Notify({
-                                Title = "Auto Anti Lag Notify",
-                                Description = lagger.Name.." Lagged Server",
-                                Time = 6.5,
-                            })
-                            Lines = 0
-                        end
-                    end
-                end)
-            else
-                plr.PlayerScripts.CharacterAndBeamMove.Enabled = true
-            end
-        end
-    })
-
-    workspace.DescendantAdded:Connect(function(d)
-        if d.Name == "GrabBeam" then
-            Lines += 1
-            lagger = d.Parent.Parent.Parent
-        end
-    end)
-
-    -- ANTI STICKY
-    box:AddToggle("AntiSticky", {
-        Text = "Anti Sticky",
-        Default = false,
-        Callback = function(v)
-            plr.PlayerScripts.StickyPartsTouchDetection.Enabled = not v
-        end
-    })
-
-    -- ANTI EXPLODE
-    box:AddToggle("AntiExplode", {
-        Text = "Anti Explode",
-        Default = false,
-        Callback = function(v)
-            if v then
-                cons["antiexp"] = workspace.ChildAdded:Connect(function(c)
-                    if c.Name == "Part" then
-                        if (c.Position - HRP.Position).Magnitude < 40 and plr.Character.Humanoid.Ragdolled.Value == true then
-                            HRP.Anchored = true
-                            task.wait(0.01)
-                            HRP.Anchored = false
-                            stvel(HRP)
-                            hum:ChangeState(Enum.HumanoidStateType.Running)
-                        end
-                    end
-                end)
-            else
-                if cons["antiexp"] then cons["antiexp"]:Disconnect() end
-            end
-        end
-    })
-
-    -- ANTI VOID
-    box:AddToggle("AntiVoid", {
-        Text = "Anti Void",
-        Default = false,
-        Callback = function(v)
-            if v then
-                workspace.FallenPartsDestroyHeight = 0/0
-            else
-                workspace.FallenPartsDestroyHeight = -100
-            end
-        end
-    })
-
     -- TELEPORTES HOUSE
     box:AddButton("Teleportes House", function()
         local Players = game:GetService("Players")
@@ -1378,9 +1809,9 @@ do
         gui.Parent = plr.PlayerGui
 
         local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(0,220,0,260)
-        frame.Position = UDim2.new(0.05,0,0.2,0)
-        frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+        frame.Size = UDim2.new(0, 220, 0, 260)
+        frame.Position = UDim2.new(0.05, 0, 0.2, 0)
+        frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
         frame.BorderSizePixel = 0
         frame.Parent = gui
 
@@ -1388,10 +1819,10 @@ do
         corner.Parent = frame
 
         local title = Instance.new("TextLabel")
-        title.Size = UDim2.new(1,0,0,35)
-        title.BackgroundColor3 = Color3.fromRGB(10,10,10)
+        title.Size = UDim2.new(1, 0, 0, 35)
+        title.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
         title.Text = "Teleportes House"
-        title.TextColor3 = Color3.new(1,1,1)
+        title.TextColor3 = Color3.new(1, 1, 1)
         title.Font = Enum.Font.GothamBold
         title.TextSize = 15
         title.Parent = frame
@@ -1400,11 +1831,11 @@ do
         titleCorner.Parent = title
 
         local close = Instance.new("TextButton")
-        close.Size = UDim2.new(0,30,0,30)
-        close.Position = UDim2.new(1,-35,0,2)
-        close.BackgroundColor3 = Color3.fromRGB(170,0,0)
+        close.Size = UDim2.new(0, 30, 0, 30)
+        close.Position = UDim2.new(1, -35, 0, 2)
+        close.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
         close.Text = "X"
-        close.TextColor3 = Color3.new(1,1,1)
+        close.TextColor3 = Color3.new(1, 1, 1)
         close.Font = Enum.Font.GothamBold
         close.TextSize = 14
         close.Parent = frame
@@ -1417,13 +1848,13 @@ do
         end)
 
         local container = Instance.new("Frame")
-        container.Size = UDim2.new(1,-10,1,-45)
-        container.Position = UDim2.new(0,5,0,40)
+        container.Size = UDim2.new(1, -10, 1, -45)
+        container.Position = UDim2.new(0, 5, 0, 40)
         container.BackgroundTransparency = 1
         container.Parent = frame
 
         local layout = Instance.new("UIListLayout")
-        layout.Padding = UDim.new(0,5)
+        layout.Padding = UDim.new(0, 5)
         layout.Parent = container
 
         local function TP(pos)
@@ -1432,11 +1863,11 @@ do
             hrp.CFrame = CFrame.new(pos)
         end
 
-        for name,pos in pairs(locations) do
+        for name, pos in pairs(locations) do
             local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(1,0,0,35)
-            btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
-            btn.TextColor3 = Color3.new(1,1,1)
+            btn.Size = UDim2.new(1, 0, 0, 35)
+            btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+            btn.TextColor3 = Color3.new(1, 1, 1)
             btn.Font = Enum.Font.Gotham
             btn.TextSize = 14
             btn.Text = name
@@ -1493,9 +1924,7 @@ do
             end
         end)
     end)
-end
-
--- ============================================================
+end-- ============================================================
 -- TAB: MAIN - COMBAT
 -- ============================================================
 
@@ -1661,7 +2090,7 @@ do
                 repeat sno(partt) task.wait() until partt:FindFirstChild("PartOwner")
                 partt.AssemblyLinearVelocity = Vector3.new(0, 10000, 0)
                 spawn(function()
-                    for i,v in pairs(ragd:GetDescendants()) do
+                    for i, v in pairs(ragd:GetDescendants()) do
                         if v:IsA("Part") then
                             v.Transparency = 1
                             v.CanCollide = false
@@ -1730,7 +2159,6 @@ do
     })
 
     -- KILL AURA
-    box:AddLabel("Auras")
     local KillAura
     box:AddToggle("KillAura", {
         Text = "Kill Aura",
@@ -1740,7 +2168,7 @@ do
             if v then
                 task.spawn(function()
                     while KillAura and RunService.Heartbeat:Wait() do
-                        for i,v in Players:GetPlayers() do
+                        for i, v in Players:GetPlayers() do
                             if v ~= plr then
                                 if v.Character and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid:GetState() ~= Enum.HumanoidStateType.Dead and (v.Character.HumanoidRootPart.Position - HRP.Position).Magnitude < 30 and not (WhitelistEnabled or not v:IsFriendsWith(plr.UserId)) then
                                     sno(v.Character.HumanoidRootPart)
@@ -1815,7 +2243,7 @@ do
         Text = "Water Walk",
         Default = false,
         Callback = function(v)
-            for i,vv in pairs(workspace.Map.AlwaysHereTweenedObjects.Ocean.Object.ObjectModel:GetChildren()) do
+            for i, vv in pairs(workspace.Map.AlwaysHereTweenedObjects.Ocean.Object.ObjectModel:GetChildren()) do
                 if vv.Name == "Ocean" then
                     vv.CanCollide = v
                 end
@@ -1836,7 +2264,7 @@ do
                     while thirdp and task.wait(0.1) do
                         local chara = plr.Character
                         if chara then
-                            for i,v in pairs(chara:GetChildren()) do
+                            for i, v in pairs(chara:GetChildren()) do
                                 if v:IsA("Part") and v.Name ~= "HumanoidRootPart" and v.Name ~= "CamPart" and HasProperty(v, "Transparency") then
                                     v.Transparency = 0
                                 end
@@ -1934,9 +2362,9 @@ do
             local tar = Mouse.Target
             if tar and tar.Parent and game.Players:FindFirstChild(tar.Parent.Name) then
                 local pl = game.Players[tar.Parent.Name]
-                BlobmanTarget:SetValue(pl.DisplayName.." ("..pl.Name..")")
-                GrabTarget:SetValue(pl.DisplayName.." ("..pl.Name..")")
-                Library:Notify("New Target! "..pl.DisplayName.." ("..pl.Name..")", 4)
+                BlobmanTarget:SetValue(pl.DisplayName .. " (" .. pl.Name .. ")")
+                GrabTarget:SetValue(pl.DisplayName .. " (" .. pl.Name .. ")")
+                Library:Notify("New Target! " .. pl.DisplayName .. " (" .. pl.Name .. ")", 4)
             end
         end
     })
@@ -1945,7 +2373,7 @@ do
     box:AddButton("Break Barrier", function()
         local pos = HRP.CFrame
         local t = tick()
-        local burg = inv:FindFirstChild("FoodHamburger") or spawntoy("FoodHamburger", HRP.CFrame * CFrame.new(5,5,20))
+        local burg = inv:FindFirstChild("FoodHamburger") or spawntoy("FoodHamburger", HRP.CFrame * CFrame.new(5, 5, 20))
         task.wait(0.1)
         grab(burg)
         HRP.CFrame = workspace.Waypoints.TudorHouse.CFrame
@@ -1966,7 +2394,7 @@ do
         grab(burger)
         task.wait(0.1)
         DestroyToy:FireServer(inv.FoodHamburger)
-        HRP.CFrame = pos * CFrame.new(0,5,0)
+        HRP.CFrame = pos * CFrame.new(0, 5, 0)
     end)
 
     -- RAGDOLL
@@ -1980,7 +2408,7 @@ do
         Default = false,
         Callback = function(v)
             loopragdoll = v
-            if v then 
+            if v then
                 task.spawn(function()
                     while loopragdoll and task.wait(0.05) do
                         Ragdoll:FireServer(HRP, 0.5)
@@ -1995,9 +2423,9 @@ do
         Text = "Anti Barrier",
         Default = false,
         Callback = function(val)
-            for i,v in pairs(workspace.Plots:GetChildren()) do
+            for i, v in pairs(workspace.Plots:GetChildren()) do
                 if v:FindFirstChild("Barrier") then
-                    for i,v in pairs(v.Barrier:GetChildren()) do
+                    for i, v in pairs(v.Barrier:GetChildren()) do
                         if v:IsA("Part") then
                             v.CanCollide = not val
                         end
@@ -2017,10 +2445,10 @@ do
                     if workspace:FindFirstChild("BlackHoleKick") then
                         Library:Notify({
                             Title = "VTX_Hub",
-                            Description = plrr.Name.."("..plrr.DisplayName..")".." Got Kicked",
+                            Description = plrr.Name .. "(" .. plrr.DisplayName .. ")" .. " Got Kicked",
                             Time = 4,
                         })
-                        workspace:FindFirstChild("BlackHoleKick").Name = plrr.Name.."KICK"
+                        workspace:FindFirstChild("BlackHoleKick").Name = plrr.Name .. "KICK"
                     end
                 end)
             else
@@ -2039,7 +2467,7 @@ do
 
     -- TP TO MOUSE (com efeito)
     local EnableEffect = true
-    
+
     box:AddToggle("EnableTPEffect", {
         Text = "Ativar Efeito de Teleporte",
         Default = true,
@@ -2070,9 +2498,6 @@ end
 -- EFEITO ENDERMAN TELEPORT
 -- ============================================================
 
-local TweenService = game:GetService("TweenService")
-local Debris = game:GetService("Debris")
-
 function createEndermanTeleportEffect(startPos, endPos)
     local numPearls = 3
 
@@ -2087,7 +2512,7 @@ function createEndermanTeleportEffect(startPos, endPos)
         startParticle.SpreadAngle = Vector2.new(60, 60)
         startParticle.Transparency = NumberSequence.new(0.3, 1)
         startParticle.Acceleration = Vector3.new(0, 3, 0)
-        
+
         local attach = Instance.new("Attachment", workspace.Terrain)
         attach.Position = startPos
         startParticle.Parent = attach
@@ -2105,7 +2530,7 @@ function createEndermanTeleportEffect(startPos, endPos)
             pearl.Transparency = 0.1
             pearl.Anchored = true
             pearl.CanCollide = false
-            pearl.Position = startPos + Vector3.new(math.random(-3,3), math.random(2,5), math.random(-3,3))
+            pearl.Position = startPos + Vector3.new(math.random(-3, 3), math.random(2, 5), math.random(-3, 3))
             pearl.Parent = workspace
 
             local trail = Instance.new("Trail")
@@ -2143,7 +2568,7 @@ function createEndermanTeleportEffect(startPos, endPos)
                 arrivalParticle.SpreadAngle = Vector2.new(55, 55)
                 arrivalParticle.Transparency = NumberSequence.new(0.3, 1)
                 arrivalParticle.Acceleration = Vector3.new(0, 2, 0)
-                
+
                 local attach2 = Instance.new("Attachment", workspace.Terrain)
                 attach2.Position = endPos
                 arrivalParticle.Parent = attach2
@@ -2160,17 +2585,17 @@ function createEndermanTeleportEffect(startPos, endPos)
                         block.Transparency = 0.15
                         block.Anchored = false
                         block.CanCollide = false
-                        block.Position = endPos + Vector3.new(math.random(-2,2), math.random(0.5, 3), math.random(-2,2))
+                        block.Position = endPos + Vector3.new(math.random(-2, 2), math.random(0.5, 3), math.random(-2, 2))
                         block.Parent = workspace
 
                         local bv = Instance.new("BodyVelocity")
                         bv.MaxForce = Vector3.new(4200, 4200, 4200)
-                        bv.Velocity = Vector3.new(math.random(-18,18), math.random(5,13), math.random(-18,18))
+                        bv.Velocity = Vector3.new(math.random(-18, 18), math.random(5, 13), math.random(-18, 18))
                         bv.Parent = block
 
                         local bg = Instance.new("BodyAngularVelocity")
-                        bg.AngularVelocity = Vector3.new(math.random(-5,5), math.random(-5,5), math.random(-5,5))
-                        bg.MaxTorque = Vector3.new(600,600,600)
+                        bg.AngularVelocity = Vector3.new(math.random(-5, 5), math.random(-5, 5), math.random(-5, 5))
+                        bg.MaxTorque = Vector3.new(600, 600, 600)
                         bg.Parent = block
 
                         Debris:AddItem(block, 1.1)
@@ -2190,9 +2615,7 @@ function createEndermanTeleportEffect(startPos, endPos)
             end)
         end)
     end
-end
-
--- ============================================================
+end-- ============================================================
 -- TAB: TARGET - BLOBMAN
 -- ============================================================
 
@@ -2261,7 +2684,7 @@ do
                     if (Sets.HRP.Position - HRP.Position).Magnitude > 30 then
                         local pos = HRP.CFrame
                         HRP.CFrame = Sets.HRP.CFrame
-                        repeat task.wait() 
+                        repeat task.wait()
                             CG:FireServer(Blob.RightDetector, Sets.HRP, Blob.RightDetector.RightWeld)
                             CR:FireServer(Blob.RightDetector.RightWeld)
                         until isnetworkowner(Sets.HRP)
@@ -2280,7 +2703,7 @@ do
                     if (Sets.HRP.Position - HRP.Position).Magnitude > 30 then
                         local pos = HRP.CFrame
                         HRP.CFrame = Sets.HRP.CFrame
-                        repeat task.wait() 
+                        repeat task.wait()
                             CG:FireServer(Blob.RightDetector, Sets.HRP, Blob.RightDetector.RightWeld)
                             CR:FireServer(Blob.RightDetector.RightWeld)
                         until isnetworkowner(Sets.HRP)
@@ -2292,7 +2715,7 @@ do
                     if isnetworkowner(Sets.HRP) then
                         Sets.HRP.CFrame = Blob.RightDetector.CFrame
                         task.spawn(function()
-                            for i,v in pairs(Sets.Char:GetChildren()) do
+                            for i, v in pairs(Sets.Char:GetChildren()) do
                                 if v:IsA("Part") and v.Name ~= "Humanoid" then
                                     v.CanCollide = false
                                 end
@@ -2302,7 +2725,7 @@ do
                 end
             elseif Method == "Kill" then
                 if Blob and Blob.Name == "CreatureBlobman" then
-                    local CD,CG = Blob.BlobmanSeatAndOwnerScript.CreatureRelease, Blob.BlobmanSeatAndOwnerScript.CreatureGrab
+                    local CD, CG = Blob.BlobmanSeatAndOwnerScript.CreatureRelease, Blob.BlobmanSeatAndOwnerScript.CreatureGrab
                     local pos = HRP.CFrame
                     if tt.Character and tt.Character:FindFirstChild("HumanoidRootPart") and tt.Character.Humanoid.Health ~= 0 then
                         Blob.HumanoidRootPart.CFrame = tt.Character.HumanoidRootPart.CFrame
@@ -2344,7 +2767,7 @@ do
                                     if (Sets.HRP.Position - HRP.Position).Magnitude > 30 then
                                         local pos = HRP.CFrame
                                         HRP.CFrame = Sets.HRP.CFrame
-                                        repeat task.wait() 
+                                        repeat task.wait()
                                             CG:FireServer(Blob.RightDetector, Sets.HRP, Blob.RightDetector.RightWeld)
                                             CR:FireServer(Blob.RightDetector.RightWeld)
                                         until isnetworkowner(Sets.HRP)
@@ -2364,7 +2787,7 @@ do
                                     if (Sets.HRP.Position - HRP.Position).Magnitude > 30 then
                                         local pos = HRP.CFrame
                                         HRP.CFrame = Sets.HRP.CFrame
-                                        repeat task.wait() 
+                                        repeat task.wait()
                                             CG:FireServer(Blob.RightDetector, Sets.HRP, Blob.RightDetector.RightWeld)
                                             CR:FireServer(Blob.RightDetector.RightWeld)
                                         until isnetworkowner(Sets.HRP)
@@ -2383,7 +2806,7 @@ do
                                     if (Sets.HRP.Position - HRP.Position).Magnitude > 30 then
                                         local pos = HRP.CFrame
                                         HRP.CFrame = Sets.HRP.CFrame
-                                        repeat task.wait() 
+                                        repeat task.wait()
                                             CG:FireServer(Blob.RightDetector, Sets.HRP, Blob.RightDetector.RightWeld)
                                             CR:FireServer(Blob.RightDetector.RightWeld)
                                         until isnetworkowner(Sets.HRP)
@@ -2395,7 +2818,7 @@ do
                                     if isnetworkowner(Sets.HRP) then
                                         Sets.HRP.CFrame = Blob.RightDetector.CFrame
                                         task.spawn(function()
-                                            for i,v in pairs(Sets.Char:GetChildren()) do
+                                            for i, v in pairs(Sets.Char:GetChildren()) do
                                                 if v:IsA("Part") and v.Name ~= "Humanoid" then
                                                     v.CanCollide = false
                                                 end
@@ -2405,7 +2828,7 @@ do
                                 end
                             elseif Method == "Kill" then
                                 if Blob and Blob.Name == "CreatureBlobman" then
-                                    local CD,CG = Blob.BlobmanSeatAndOwnerScript.CreatureRelease, Blob.BlobmanSeatAndOwnerScript.CreatureGrab
+                                    local CD, CG = Blob.BlobmanSeatAndOwnerScript.CreatureRelease, Blob.BlobmanSeatAndOwnerScript.CreatureGrab
                                     local pos = HRP.CFrame
                                     if tt.Character and tt.Character:FindFirstChild("HumanoidRootPart") and tt.Character.Humanoid.Health ~= 0 then
                                         Blob.HumanoidRootPart.CFrame = tt.Character.HumanoidRootPart.CFrame
@@ -2489,8 +2912,8 @@ do
                                     repeat task.wait() until blob and blob:FindFirstChild("RightDetector") and blob:FindFirstChild("VehicleSeat")
                                     blob.Name = "cringe"
                                     if blob then
-                                        repeat task.wait() blob.VehicleSeat:Sit(hum) until hum.SeatPart == blob.VehicleSeat 
-                                        local CG,CD = blob.BlobmanSeatAndOwnerScript.CreatureGrab, blob.BlobmanSeatAndOwnerScript.CreatureRelease
+                                        repeat task.wait() blob.VehicleSeat:Sit(hum) until hum.SeatPart == blob.VehicleSeat
+                                        local CG, CD = blob.BlobmanSeatAndOwnerScript.CreatureGrab, blob.BlobmanSeatAndOwnerScript.CreatureRelease
                                         blob.HumanoidRootPart.CFrame = Sets.HRP.CFrame
                                         task.wait(0.2)
                                         repeat
@@ -2526,7 +2949,7 @@ do
                                         task.wait()
                                         HRP.CFrame = pos
                                         task.wait(0.2)
-                                        for i,v in pairs(Sets.Char:GetChildren()) do
+                                        for i, v in pairs(Sets.Char:GetChildren()) do
                                             if v:IsA("Part") and v.Name ~= "Humanoid" then
                                                 v.CFrame = pos * offset
                                             end
@@ -2550,7 +2973,7 @@ do
                                         kickbp.Parent = Sets.HRP
                                         kickbp.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
                                         kickbp.D = 400
-                                        kickbp.Position = HRP.Position + Vector3.new(0,5,0)
+                                        kickbp.Position = HRP.Position + Vector3.new(0, 5, 0)
                                     end
                                     if not kickbg or kickbg.Parent ~= Sets.HRP then
                                         kickbg = Instance.new("BodyGyro")
@@ -2560,24 +2983,24 @@ do
                                         kickbg.CFrame = CFrame.new(0, 0, 0)
                                     end
                                     task.spawn(function()
-                                        for i,v in Sets.Char:GetChildren() do
+                                        for i, v in Sets.Char:GetChildren() do
                                             if HasProperty(v, "AssemblyLinearVelocity") then
                                                 stvel(v)
                                                 v.Velocity = Vector3.zero
                                             end
                                         end
                                     end)
-                                    kickbp.Position = HRP.Position + Vector3.new(offset.X,offset.Y,offset.Z)
+                                    kickbp.Position = HRP.Position + Vector3.new(offset.X, offset.Y, offset.Z)
                                 end
                             elseif Method == "Loop Grab" then
                                 if Sets.HRP and hum and HRP and Sets.Char.Parent == workspace then
                                     if (Sets.HRP.Position - HRP.Position).Magnitude > 30 then
                                         stvel(HRP)
-                                        HRP.CFrame = Sets.HRP.CFrame * CFrame.new(0,0,5)
+                                        HRP.CFrame = Sets.HRP.CFrame * CFrame.new(0, 0, 5)
                                         task.wait()
                                         repeat task.wait() sno(Sets.HRP) until Sets.Char.Head:FindFirstChild("PartOwner")
                                         HRP.CFrame = pos
-                                        Sets.HRP.CFrame = HRP.CFrame * CFrame.new(0,15,0)
+                                        Sets.HRP.CFrame = HRP.CFrame * CFrame.new(0, 15, 0)
                                     end
                                     task.spawn(function()
                                         if Toggles.EnableRagdoll.Value and PalletForRagdoll and inv:FindFirstChild("PalletForRagdoll") then
@@ -2599,8 +3022,8 @@ do
                                     repeat task.wait() until blob and blob:FindFirstChild("RightDetector") and blob:FindFirstChild("VehicleSeat")
                                     blob.Name = "cringe"
                                     if blob then
-                                        repeat task.wait() blob.VehicleSeat:Sit(hum) until hum.SeatPart == blob.VehicleSeat 
-                                        local CG,CD = blob.BlobmanSeatAndOwnerScript.CreatureGrab, blob.BlobmanSeatAndOwnerScript.CreatureRelease
+                                        repeat task.wait() blob.VehicleSeat:Sit(hum) until hum.SeatPart == blob.VehicleSeat
+                                        local CG, CD = blob.BlobmanSeatAndOwnerScript.CreatureGrab, blob.BlobmanSeatAndOwnerScript.CreatureRelease
                                         blob.HumanoidRootPart.CFrame = Sets.HRP.CFrame
                                         task.wait(0.2)
                                         repeat
@@ -2686,8 +3109,8 @@ do
                         if not Toggles.LoopKickBlob.Value then break end
                         blobRoot.CFrame = tRoot.CFrame
                         pcall(function()
-                            if CG and R_Det then 
-                                CG:FireServer(R_Det, tRoot, R_Weld) 
+                            if CG and R_Det then
+                                CG:FireServer(R_Det, tRoot, R_Weld)
                             end
                             DestroyLine:FireServer(tRoot)
                             SetNetOwner:FireServer(tRoot, tRoot.CFrame)
@@ -2721,9 +3144,9 @@ do
                     RunService.Heartbeat:Wait()
                 end
 
-                if blobRoot then 
-                    blobRoot.CFrame = SavedPos 
-                    blobRoot.Velocity = Vector3.zero 
+                if blobRoot then
+                    blobRoot.CFrame = SavedPos
+                    blobRoot.Velocity = Vector3.zero
                 end
             end)
         end
@@ -2787,14 +3210,14 @@ do
 
                 local function ProcessItem(item)
                     if not item or not AllowedItems[item.Name] or not item:FindFirstChild("HoldPart") then return end
-                    
+
                     local holdPart = item.HoldPart
                     pcall(function()
                         holdPart.HoldItemRemoteFunction:InvokeServer(item, plr.Character)
                     end)
                     task.wait(0.025)
                     pcall(function()
-                        holdPart.DropItemRemoteFunction:InvokeServer(item, 
+                        holdPart.DropItemRemoteFunction:InvokeServer(item,
                             CFrame.new(0, -3000, 0), Vector3.zero)
                     end)
                 end
@@ -2808,7 +3231,7 @@ do
                             ProcessItem(item)
                         end
 
-                        connections[#connections+1] = folder.ChildAdded:Connect(function(item)
+                        connections[#connections + 1] = folder.ChildAdded:Connect(function(item)
                             task.wait(0.05)
                             ProcessItem(item)
                         end)
@@ -2817,7 +3240,7 @@ do
 
                 StartMonitoring()
 
-                connections[#connections+1] = target.CharacterAdded:Connect(function()
+                connections[#connections + 1] = target.CharacterAdded:Connect(function()
                     task.wait(1)
                     StartMonitoring()
                 end)
@@ -2860,39 +3283,39 @@ do
     local loopConnection = nil
 
     box:AddButton("Activate remove gucci", function()
-        if GucciAtivado then 
-            print("Remove Gucci it's already activated") 
-            return 
+        if GucciAtivado then
+            print("Remove Gucci it's already activated")
+            return
         end
-        
+
         GucciAtivado = true
         print("Remove gucci on")
 
         loopConnection = task.spawn(function()
             while GucciAtivado do
                 local Seat = Seats[Sets.Name]
-                
+
                 if Seat and hum and HRP then
                     Seat:Sit(hum)
                     task.wait(0.03)
                     stvel(HRP)
                     HRP.CFrame = HRP.CFrame
                 end
-                
+
                 task.wait(0.15)
             end
         end)
     end)
 
     box:AddButton("Disable remove gucci", function()
-        if not GucciAtivado then 
-            print("Remove gucci already deactivated") 
-            return 
+        if not GucciAtivado then
+            print("Remove gucci already deactivated")
+            return
         end
-        
+
         GucciAtivado = false
         print("Remove gucci off")
-        
+
         if loopConnection then
             task.cancel(loopConnection)
             loopConnection = nil
@@ -2932,7 +3355,7 @@ end
 do
     local box = Tabs.Target:AddLeftGroupbox("Settings", "wrench")
     box:AddLabel("Change Offset\n(Only for loop grabs)", false)
-    local x,y,z
+    local x, y, z
     box:AddSlider("Offset", {
         Text = "X",
         Default = -4.9,
@@ -2977,7 +3400,7 @@ do
                     repeat task.wait() until PalletForRagdoll and PalletForRagdoll:FindFirstChild("SoundPart")
                     repeat task.wait() sno(PalletForRagdoll.SoundPart) until PalletForRagdoll.SoundPart:FindFirstChild("PartOwner")
                     PalletForRagdoll.SoundPart.AssemblyLinearVelocity = Vector3.new(0, 1e9, 0)
-                    for i,v in pairs(PalletForRagdoll:GetChildren()) do
+                    for i, v in pairs(PalletForRagdoll:GetChildren()) do
                         if v:IsA("Part") then
                             v.CanCollide = false
                             v.CanQuery = false
@@ -3012,11 +3435,11 @@ do
                         if not GrabTarget.Value then return end
                         local tt = Players:FindFirstChild(getname(GrabTarget.Value))
                         if not tt then return end
-                        for i,v in pairs(workspace[tt.Name.."SpawnedInToys"]:GetChildren()) do
+                        for i, v in pairs(workspace[tt.Name .. "SpawnedInToys"]:GetChildren()) do
                             if v:FindFirstChild("StickyPart") and (v.StickyPart.Position - HRP.Position).Magnitude < 30 then
                                 sno(v.StickyPart)
                                 if v.StickyPart:FindFirstChild("PartOwner") and v.StickyPart.PartOwner.Value == plr.Name then
-                                    v.StickyPart.CFrame = CFrame.new(0, 0/0, 0)
+                                    v.StickyPart.CFrame = CFrame.new(0, 0 / 0, 0)
                                 end
                             end
                         end
@@ -3036,9 +3459,7 @@ do
         Max = 1,
         Rounding = 2,
     })
-end
-
--- ============================================================
+end-- ============================================================
 -- TAB: LAGS
 -- ============================================================
 
@@ -3066,7 +3487,7 @@ do
             if v then
                 task.spawn(function()
                     while linelag do
-                        for i=1, lps do
+                        for i = 1, lps do
                             CreateLine:FireServer(workspace.SpawnLocation, CFrame.new(0, 9e9, 0))
                         end
                         task.wait(1)
@@ -3124,7 +3545,7 @@ do
         Default = false,
         Callback = function(v)
             PacketsEnabled = v
-            
+
             if v then
                 Library:Notify("Packet Lag Ativado", 3)
                 task.spawn(function()
@@ -3149,7 +3570,7 @@ do
                                 )
                             end
                         end)
-                        
+
                         task.wait(0.05)
                     end
                 end)
@@ -3211,7 +3632,7 @@ do
                                 end
                             end)
                             task.spawn(function()
-                                for i,v in tar.Parent:GetChildren() do
+                                for i, v in tar.Parent:GetChildren() do
                                     if char:FindFirstChild(v.Name) and v:IsA("BasePart") and HasProperty(v, "CFrame") then
                                         v.CFrame = char[v.Name].CFrame
                                         stvel(v)
@@ -3379,8 +3800,8 @@ do
                 if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= cam.CFrame.LookVector end
                 if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir -= cam.CFrame.RightVector end
                 if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += cam.CFrame.RightVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0,1,0) end
-                if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir -= Vector3.new(0,1,0) end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0, 1, 0) end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir -= Vector3.new(0, 1, 0) end
 
                 if moveDir.Magnitude > 0 then
                     moveDir = moveDir.Unit
@@ -3400,12 +3821,12 @@ do
         local char = plr.Character
         if char and char:FindFirstChild("HumanoidRootPart") then
             local hrp = char.HumanoidRootPart
-            
+
             if bv and bv.Parent then
                 bv.Velocity = Vector3.zero
                 task.wait()
             end
-            
+
             if humanoid then
                 humanoid.PlatformStand = false
             end
@@ -3458,9 +3879,7 @@ do
             end
         end
     })
-end
-
--- ============================================================
+end-- ============================================================
 -- TAB: WHITELIST
 -- ============================================================
 
@@ -3474,7 +3893,7 @@ do
 
     toggle:OnChanged(function(v)
         local val = v and "Disable" or not v and "Enable"
-        toggle:SetText(val.." Whitelist")
+        toggle:SetText(val .. " Whitelist")
         WhitelistEnabled = v
     end)
 end
@@ -3579,8 +3998,8 @@ do
                 table.insert(serverList, pl.DisplayName .. " (" .. pl.Name .. ")")
             end
         end
-        if #serverList == 0 then 
-            table.insert(serverList, "Nenhum jogador") 
+        if #serverList == 0 then
+            table.insert(serverList, "Nenhum jogador")
         end
         ServerPlayersDropdown:SetValues(serverList)
 
@@ -3593,8 +4012,8 @@ do
                 table.insert(blList, name)
             end
         end
-        if #blList == 0 then 
-            table.insert(blList, "Blacklist vazia") 
+        if #blList == 0 then
+            table.insert(blList, "Blacklist vazia")
         end
         BlacklistDropdown:SetValues(blList)
     end
@@ -3603,7 +4022,7 @@ end
 Players.PlayerAdded:Connect(function(pl)
     task.wait(1.5)
     if not BlacklistEnabled then return end
-    
+
     if table.find(Blacklist, pl.Name) or table.find(Blacklist, pl.DisplayName) then
         Library:Notify("⚠️ BLACKLIST: " .. pl.DisplayName .. " (" .. pl.Name .. ") entrou no servidor!", 6)
     end
@@ -3620,6 +4039,27 @@ game.Players.PlayerRemoving:Connect(function(pl)
 end)
 
 -- ============================================================
+-- PACKET DETECTOR
+-- ============================================================
+
+local activepackets = false
+rs.GrabEvents.ExtendGrabLine.OnClientEvent:Connect(function(player, args)
+    if typeof(args) == "string" and string.len(args) > 300 and not activepackets then
+        activepackets = true
+        local function GetSizeMB(StringLength)
+            return StringLength / (1024 * 1024)
+        end
+        local SizeRounded = math.round(GetSizeMB(string.len(args)) * 1000) / 1000
+        Library:Notify({
+            Title = "VTX_Hub",
+            Description = player.Name .. " Enabled Packets Size: " .. SizeRounded,
+            Time = 4,
+            Icon = "rbxassetid://127990091575711"
+        })
+        task.wait(4)
+        activepackets = false
+    end
+end)-- ============================================================
 -- TAB: SERVER
 -- ============================================================
 
@@ -3630,9 +4070,9 @@ do
         local blob = hum.SeatPart and hum.SeatPart.Parent and hum.SeatPart.Parent.Name == "CreatureBlobman" and hum.SeatPart.Parent
         if not blob then return end
         blob.Name = "blob"
-        local CD,CR,CG = blob.BlobmanSeatAndOwnerScript.CreatureDrop, blob.BlobmanSeatAndOwnerScript.CreatureRelease, blob.BlobmanSeatAndOwnerScript.CreatureGrab
+        local CD, CR, CG = blob.BlobmanSeatAndOwnerScript.CreatureDrop, blob.BlobmanSeatAndOwnerScript.CreatureRelease, blob.BlobmanSeatAndOwnerScript.CreatureGrab
         local pos = blob.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0)
-        for i,v in game.Players:GetPlayers() do
+        for i, v in game.Players:GetPlayers() do
             pcall(function()
                 if v ~= plr and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and (not WhitelistEnabled or not v:IsFriendsWith(plr.UserId)) then
                     blob.HumanoidRootPart.CFrame = v.Character.HumanoidRootPart.CFrame
@@ -3647,7 +4087,7 @@ do
         task.wait(0.1)
         blob.HumanoidRootPart.Anchored = true
         local rotation = 0
-        for i,v in game.Players:GetPlayers() do
+        for i, v in game.Players:GetPlayers() do
             pcall(function()
                 if v ~= plr and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and isnetworkowner(v.Character.HumanoidRootPart) and (not WhitelistEnabled or not v:IsFriendsWith(plr.UserId)) then
                     local bg = Instance.new("BodyGyro", v.Character.HumanoidRootPart)
@@ -3673,36 +4113,13 @@ do
 end
 
 -- ============================================================
--- PACKET DETECTOR
--- ============================================================
-
-local activepackets = false
-rs.GrabEvents.ExtendGrabLine.OnClientEvent:Connect(function(player, args)
-    if typeof(args) == "string" and string.len(args) > 300 and not activepackets then
-        activepackets = true
-        local function GetSizeMB(StringLength)
-            return StringLength / (1024 * 1024)
-        end
-        local SizeRounded = math.round(GetSizeMB(string.len(args)) * 1000) / 1000 
-        Library:Notify({
-            Title = "VTX_Hub",
-            Description = player.Name .. " Enabled Packets Size: " .. SizeRounded,
-            Time = 4,
-            Icon = "rbxassetid://127990091575711"
-        })
-        task.wait(4)
-        activepackets = false
-    end
-end)
-
--- ============================================================
 -- UI SETTINGS
 -- ============================================================
 
 local MenuGroup = Tabs["UI Settings"]:AddLeftGroupbox("Menu Settings")
 
 MenuGroup:AddButton("Unload", function()
-    for i,v in Toggles do
+    for i, v in Toggles do
         if not v.Value then continue end
         v:SetValue(false)
     end
@@ -3752,7 +4169,7 @@ MenuGroup:AddToggle("Blur", {
     end
 })
 
-Library.ToggleKeybind = Options.MenuKeybind 
+Library.ToggleKeybind = Options.MenuKeybind
 
 ThemeManager:SetLibrary(Library)
 ThemeManager:SetFolder("MyScriptHub")
@@ -3773,7 +4190,7 @@ SaveManager:LoadAutoloadConfig()
 local function UpdatePlayerLists()
     local list = {}
     for _, pl in ipairs(Players:GetPlayers()) do
-        table.insert(list, pl.DisplayName.." ("..pl.Name..")")
+        table.insert(list, pl.DisplayName .. " (" .. pl.Name .. ")")
     end
     GrabTarget:SetValues(list)
     BlobmanTarget:SetValues(list)
@@ -3787,7 +4204,7 @@ UpdatePlayerLists()
 -- SEATS / MASS LESS
 -- ============================================================
 
-for i,v in Players:GetPlayers() do
+for i, v in Players:GetPlayers() do
     if v ~= plr then
         if v.Character and v.Character.Humanoid.SeatPart then Seats[v.Name] = v.Character.Humanoid.SeatPart end
         v.CharacterAdded:Connect(function(c)
@@ -3836,7 +4253,7 @@ Players.PlayerAdded:Connect(function(p)
     end
 end)
 
-for i,v in Players:GetPlayers() do
+for i, v in Players:GetPlayers() do
     if v ~= plr then
         if v.Character and v.Character.Humanoid.SeatPart then Seats[v.Name] = v.Character.Humanoid.SeatPart end
         v.CharacterAdded:Connect(function(c)
@@ -3900,25 +4317,25 @@ task.spawn(function()
         snow.Position = UDim2.new(math.random(), 0, -0.1, 0)
         snow.Size = UDim2.new(0, 10, 0, 10)
         snow.BackgroundTransparency = 0
-        snow.BackgroundColor3 = Color3.fromRGB(255,255,255)
+        snow.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 
         local function fall()
             local tweenInfo = TweenInfo.new(3 + math.random(), Enum.EasingStyle.Linear)
-            local tweenGoal = {Position = UDim2.new(snow.Position.X.Scale, 0, 1, 0)}
+            local tweenGoal = { Position = UDim2.new(snow.Position.X.Scale, 0, 1, 0) }
             local tween = TweenService:Create(snow, tweenInfo, tweenGoal)
             tween:Play()
-            
+
             tween.Completed:Connect(function()
                 snow.Position = UDim2.new(math.random(), 0, -0.1, 0)
                 fall()
             end)
         end
-        
+
         fall()
     end
     local fr
-    for i,v in gethui().Obsidian.Main:GetChildren() do
-        if v:IsA("Frame") and v.Position == UDim2.new(0,0,0,0) then
+    for i, v in gethui().Obsidian.Main:GetChildren() do
+        if v:IsA("Frame") and v.Position == UDim2.new(0, 0, 0, 0) then
             fr = v
         end
     end
@@ -3928,8 +4345,8 @@ task.spawn(function()
     clone.Size = UDim2.new(0, 100, 0, 100)
     clone.Image = "rbxassetid://88035769656617"
     clone.ImageColor3 = Color3.fromRGB(255, 255, 255)
-    clone.ImageRectOffset = Vector2.new(0,0)
-    clone.ImageRectSize = Vector2.new(0,0)
+    clone.ImageRectOffset = Vector2.new(0, 0)
+    clone.ImageRectSize = Vector2.new(0, 0)
     while task.wait(0.1) do
         gui.Enabled = Snowflakes and gethui().Obsidian.Main.Visible
         workspace.Camera.Blur.Enabled = Blur and gethui().Obsidian.Main.Visible
@@ -3940,3 +4357,16 @@ end)
 game:GetService("Players").LocalPlayer.PlayerGui.GameCorrectionsGui.GameCorrectionsUiController.Enabled = false
 
 print("VTX_Hub COMPLETO carregado com sucesso!")
+
+-- ============================================================
+-- MENSAGEM FINAL
+-- ============================================================
+
+task.spawn(function()
+    task.wait(2)
+    Library:Notify({
+        Title = "VTX_HUB UNIFICADO",
+        Description = "✅ Todas as funcionalidades carregadas!",
+        Time = 8,
+    })
+end)
