@@ -1,8 +1,8 @@
 -- ============================================================
--- VTX_HUB
+-- VTX_HUB - VERSÃO COMPLETA CORRIGIDA
 -- ============================================================
--- Junção top
---
+-- Todas as funcionalidades unificadas e corrigidas
+-- discord.gg/bdy4ssD3P4
 -- ============================================================
 
 gethui = function()
@@ -268,7 +268,9 @@ local Tabs = {
     Fun = Window:AddTab("Fun"),
     Auras = Window:AddTab("Auras"),
     ["UI Settings"] = Window:AddTab("UI Settings"),
-}-- ============================================================
+}
+
+-- ============================================================
 -- TAB: VISUAL - AVATAR VIEW + ESP + SHADERS
 -- ============================================================
 
@@ -491,7 +493,9 @@ do
             end
         end
     })
-end-- ============================================================
+end
+
+-- ============================================================
 -- SHADERS 2026 (MELHORES)
 -- ============================================================
 
@@ -783,7 +787,8 @@ do
         Default = true,
         Callback = function(v)
             if effects.DOF then
-                effects.DOF.NearIntensity = v and 0 or 0.35                effects.DOF.FarIntensity = v and 0 or 0.55
+                effects.DOF.NearIntensity = v and 0 or 0.35
+                effects.DOF.FarIntensity = v and 0 or 0.55
             end
         end
     })
@@ -795,228 +800,9 @@ do
         end
         Library:Notify("Todos os shaders resetados", 3)
     end)
-end = 3.4
-        effects.Bloom.Intensity = 1.55
-        effects.Bloom.Size = 24
-        effects.Bloom.Threshold = 0.82
-        effects.Color.Brightness = 0.06
-        effects.Color.Contrast = 0.28
-        effects.Color.Saturation = 0.88
-        effects.Color.TintColor = Color3.fromRGB(255, 245, 235)
-        effects.Atmosphere.Density = 0.19
-        effects.Atmosphere.Haze = 0.75
-        effects.Atmosphere.Glare = 0.3
-    end
+end
 
-    presets.EtherealDream = function()
-        CreateEffects()
-        Lighting.ClockTime = 13.2
-        Lighting.Brightness = 2.9
-        Lighting.Ambient = Color3.fromRGB(130, 145, 170)
-        effects.Bloom.Intensity = 1.75
-        effects.Bloom.Size = 26
-        effects.Bloom.Threshold = 0.72
-        effects.Color.Brightness = 0.08
-        effects.Color.Contrast = 0.15
-        effects.Color.Saturation = 1.25
-        effects.Color.TintColor = Color3.fromRGB(225, 235, 255)
-        effects.Atmosphere.Density = 0.26
-        effects.Atmosphere.Offset = 0.3
-        effects.Atmosphere.Color = Color3.fromRGB(195, 215, 255)
-        effects.Atmosphere.Decay = Color3.fromRGB(170, 200, 255)
-        effects.Atmosphere.Glare = 0.4
-        effects.Atmosphere.Haze = 1.25
-        effects.SunRays.Intensity = 0.22
-        effects.SunRays.Spread = 0.75
-    end
-
-    presets.DivineGoldenHour = function()
-        CreateEffects()
-        Lighting.ClockTime = 17.8
-        Lighting.Brightness = 2.95
-        effects.Bloom.Intensity = 1.65
-        effects.Bloom.Size = 24
-        effects.Bloom.Threshold = 0.75
-        effects.Color.Brightness = 0.11
-        effects.Color.Contrast = 0.20
-        effects.Color.Saturation = 1.08
-        effects.Color.TintColor = Color3.fromRGB(255, 190, 115)
-        effects.Atmosphere.Density = 0.29
-        effects.Atmosphere.Color = Color3.fromRGB(255, 165, 75)
-        effects.Atmosphere.Decay = Color3.fromRGB(255, 135, 55)
-        effects.Atmosphere.Haze = 1.0
-        effects.Atmosphere.Glare = 0.42
-        effects.SunRays.Intensity = 0.26
-        effects.SunRays.Spread = 0.8
-    end
-
-    presets.Photorealistic = function()
-        CreateEffects()
-        Lighting.ClockTime = 14
-        Lighting.Brightness = 2.65
-        Lighting.GlobalShadows = true
-        effects.Bloom.Intensity = 1.35
-        effects.Bloom.Size = 22
-        effects.Bloom.Threshold = 0.9
-        effects.Color.Brightness = 0.04
-        effects.Color.Contrast = 0.32
-        effects.Color.Saturation = 0.78
-        effects.Color.TintColor = Color3.fromRGB(245, 240, 235)
-        effects.Atmosphere.Density = 0.145
-        effects.Atmosphere.Offset = 0.1
-        effects.Atmosphere.Haze = 0.6
-        effects.Atmosphere.Glare = 0.25
-        effects.DOF.FocusDistance = 250
-        effects.DOF.InFocusRadius = 180
-        effects.DOF.NearIntensity = 0.015
-        effects.DOF.FarIntensity = 0.08
-    end
-
-    presets.CelestialBloom = function()
-        CreateEffects()
-        Lighting.ClockTime = 16.5
-        Lighting.Brightness = 3.1
-        effects.Bloom.Intensity = 1.95
-        effects.Bloom.Size = 29
-        effects.Bloom.Threshold = 0.68
-        effects.Color.Brightness = 0.13
-        effects.Color.Contrast = 0.16
-        effects.Color.Saturation = 1.32
-        effects.Color.TintColor = Color3.fromRGB(205, 230, 255)
-        effects.Atmosphere.Density = 0.24
-        effects.Atmosphere.Color = Color3.fromRGB(175, 205, 255)
-        effects.Atmosphere.Decay = Color3.fromRGB(135, 180, 255)
-        effects.Atmosphere.Glare = 0.48
-        effects.Atmosphere.Haze = 1.35
-        effects.SunRays.Intensity = 0.24
-        effects.SunRays.Spread = 0.72
-    end
-
-    presets.DreamyNight = function()
-        CreateEffects()
-        Lighting.ClockTime = 0.5
-        Lighting.Brightness = 2
-        Lighting.GlobalShadows = false
-        Lighting.EnvironmentDiffuseScale = 0.2
-        Lighting.EnvironmentSpecularScale = 0.1
-        Lighting.FogEnd = 200000
-        effects.Bloom.Intensity = 1.6
-        effects.Bloom.Size = 90
-        effects.Bloom.Threshold = 1.4
-        effects.Color.Brightness = 0.15
-        effects.Color.Contrast = -0.1
-        effects.Color.Saturation = 0.25
-        effects.Color.TintColor = Color3.fromRGB(210, 220, 255)
-        effects.Atmosphere.Density = 0.45
-        effects.Atmosphere.Offset = 0.1
-        effects.Atmosphere.Color = Color3.fromRGB(180, 190, 255)
-        effects.Atmosphere.Decay = Color3.fromRGB(120, 130, 180)
-        effects.Atmosphere.Glare = 0.15
-        effects.Atmosphere.Haze = 3
-        effects.SunRays.Intensity = 0.05
-        effects.SunRays.Spread = 0.6
-        effects.DOF.Size = 6
-    end
-
-    local function ActivateShader(name)
-        if currentShader == name then return end
-        DestroyAll()
-        presets[name]()
-        currentShader = name
-    end
-
-    local toggles = {}
-
-    toggles.UltraRTX = box:AddToggle("UltraRTX", {
-        Text = "Ultra RTX (Melhor Geral)",
-        Default = false,
-        Callback = function(v)
-            if v then ActivateShader("UltraRTX") Library:Notify("Ultra RTX Ativado 🔥", 4)
-            elseif currentShader == "UltraRTX" then DestroyAll() end
-        end
-    })
-
-    toggles.Cinematic = box:AddToggle("Cinematic", {
-        Text = "Cinematic Realistic",
-        Default = false,
-        Callback = function(v)
-            if v then ActivateShader("CinematicRealistic") Library:Notify("Cinematic Realistic Ativado", 4)
-            elseif currentShader == "CinematicRealistic" then DestroyAll() end
-        end
-    })
-
-    toggles.Ethereal = box:AddToggle("Ethereal", {
-        Text = "Ethereal Dream ✨",
-        Default = false,
-        Callback = function(v)
-            if v then ActivateShader("EtherealDream") Library:Notify("Ethereal Dream Ativado", 4)
-            elseif currentShader == "EtherealDream" then DestroyAll() end
-        end
-    })
-
-    toggles.GoldenHour = box:AddToggle("GoldenHour", {
-        Text = "Divine Golden Hour",
-        Default = false,
-        Callback = function(v)
-            if v then ActivateShader("DivineGoldenHour") Library:Notify("Divine Golden Hour Ativado", 4)
-            elseif currentShader == "DivineGoldenHour" then DestroyAll() end
-        end
-    })
-
-    toggles.Photorealistic = box:AddToggle("Photorealistic", {
-        Text = "Photorealistic",
-        Default = false,
-        Callback = function(v)
-            if v then ActivateShader("Photorealistic") Library:Notify("Photorealistic Ativado", 4)
-            elseif currentShader == "Photorealistic" then DestroyAll() end
-        end
-    })
-
-    toggles.Celestial = box:AddToggle("Celestial", {
-        Text = "Celestial Bloom",
-        Default = false,
-        Callback = function(v)
-            if v then ActivateShader("CelestialBloom") Library:Notify("Celestial Bloom Ativado", 4)
-            elseif currentShader == "CelestialBloom" then DestroyAll() end
-        end
-    })
-
-    toggles.DreamyNight = box:AddToggle("DreamyNight", {
-        Text = "Dreamy Night 🌙",
-        Default = false,
-        Callback = function(v)
-            if v then ActivateShader("DreamyNight") Library:Notify("Dreamy Night Ativado", 4)
-            elseif currentShader == "DreamyNight" then DestroyAll() end
-        end
-    })
-
-    box:AddSlider("Brightness", {
-        Text = "Global Brightness",
-        Default = 1,
-        Min = 0,
-        Max = 5,
-        Rounding = 1,
-        Callback = function(v) Lighting.Brightness = v end
-    })
-
-    box:AddToggle("NoDOF", {
-        Text = "Remover Embaçado (DOF)",
-        Default = true,
-        Callback = function(v)
-            if effects.DOF then
-                effects.DOF.NearIntensity = v and 0 or 0.35                effects.DOF.FarIntensity = v and 0 or 0.55
-            end
-        end
-    })
-
-    box:AddButton("Reset All Shaders", function()
-        DestroyAll()
-        for _, toggle in pairs(toggles) do
-            toggle:SetValue(false)
-        end
-        Library:Notify("Todos os shaders resetados", 3)
-    end)
-end-- ============================================================
+-- ============================================================
 -- TAB: DEFENCE
 -- ============================================================
 
@@ -1924,7 +1710,9 @@ do
             end
         end)
     end)
-end-- ============================================================
+end
+
+-- ============================================================
 -- TAB: MAIN - COMBAT
 -- ============================================================
 
@@ -2615,12 +2403,15 @@ function createEndermanTeleportEffect(startPos, endPos)
             end)
         end)
     end
-end-- ============================================================
+end
+
+-- ============================================================
 -- TAB: TARGET - BLOBMAN
 -- ============================================================
 
 do
     local box = Tabs.Target:AddRightGroupbox("Blobman")
+    _G.AutoSitBlobZ = true
 
     local Sets = {
         Name = nil,
@@ -2636,6 +2427,14 @@ do
         Multi = false,
         Callback = function(v)
             Sets.Name = getname(v)
+        end
+    })
+
+    box:AddToggle("AutoSitZ", {
+        Text = "Auto Sit Blobman [Z]",
+        Default = true,
+        Callback = function(Value)
+            _G.AutoSitBlobZ = Value
         end
     })
 
@@ -3459,7 +3258,9 @@ do
         Max = 1,
         Rounding = 2,
     })
-end-- ============================================================
+end
+
+-- ============================================================
 -- TAB: LAGS
 -- ============================================================
 
@@ -3879,7 +3680,9 @@ do
             end
         end
     })
-end-- ============================================================
+end
+
+-- ============================================================
 -- TAB: WHITELIST
 -- ============================================================
 
@@ -4059,7 +3862,9 @@ rs.GrabEvents.ExtendGrabLine.OnClientEvent:Connect(function(player, args)
         task.wait(4)
         activepackets = false
     end
-end)-- ============================================================
+end)
+
+-- ============================================================
 -- TAB: SERVER
 -- ============================================================
 
@@ -4110,6 +3915,283 @@ do
         blob.HumanoidRootPart.Anchored = false
         DestroyToy:FireServer(inv.blob)
     end)
+end
+
+-- ============================================================
+-- TAB: AURAS
+-- ============================================================
+
+do
+    local AurasGroup = Tabs.Auras:AddLeftGroupbox("Auras")
+
+    -- REMOVE ANTI KICK AURA
+    local removeAntiKickAuraActive = false
+    local removeAntiKickAuraConnection = nil
+    local removeAntiKickRadius = 15
+    local useWhitelistRemoveAntiKick = true
+
+    AurasGroup:AddDropdown("RemoveAntiKickAuraRadiusDropdown", {
+        Text = "Anti Kick Aura Radius",
+        Values = {"10", "12", "14", "16", "18", "20"},
+        Default = "15",
+        Callback = function(value)
+            removeAntiKickRadius = tonumber(value)
+        end
+    })
+
+    AurasGroup:AddToggle("RemoveAntiKickAuraWhitelistToggle", {
+        Text = "Use Whitelist (Friends)",
+        Default = true,
+        Callback = function(on)
+            useWhitelistRemoveAntiKick = on
+        end
+    })
+
+    AurasGroup:AddToggle("RemoveAntiKickAuraToggle", {
+        Text = "Remove Anti Kick Aura",
+        Default = false,
+        Callback = function(on)
+            removeAntiKickAuraActive = on
+            if not on then
+                if removeAntiKickAuraConnection then
+                    removeAntiKickAuraConnection:Disconnect()
+                    removeAntiKickAuraConnection = nil
+                end
+                return
+            end
+            task.spawn(function()
+                local SetNetOwner = rs.GrabEvents.SetNetworkOwner
+                removeAntiKickAuraConnection = RunService.Heartbeat:Connect(function()
+                    local myChar = plr.Character
+                    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                    if not myRoot then return end
+                    for _, target in ipairs(Players:GetPlayers()) do
+                        if target ~= plr then
+                            local tChar = target.Character
+                            local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
+                            if not tRoot then continue end
+                            if useWhitelistRemoveAntiKick and plr:IsFriendsWith(target.UserId) then continue end
+                            if (tRoot.Position - myRoot.Position).Magnitude <= removeAntiKickRadius then
+                                local spawned = workspace:FindFirstChild(target.Name .. "SpawnedInToys")
+                                if spawned then
+                                    for _, toyName in ipairs({"NinjaKunai", "NinjaShuriken", "AntiKick"}) do
+                                        local toy = spawned:FindFirstChild(toyName)
+                                        if toy then
+                                            local part = toy:FindFirstChild("SoundPart")
+                                            if part then
+                                                pcall(function()
+                                                    SetNetOwner:FireServer(part, part.CFrame)
+                                                    if part:FindFirstChild("PartOwner") and part.PartOwner.Value == plr.Name then
+                                                        part.CFrame = CFrame.new(0, 1000, 0)
+                                                    end
+                                                end)
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end)
+            end)
+        end
+    })
+
+    -- DUAL HAND KICK AURA
+    local dualKickAuraEnabled = false
+    local dualKickAuraRadius = 20
+    local dualKickAuraWhitelist = true
+    local dualKickAuraConn
+
+    AurasGroup:AddDropdown("DualKickAuraRadius", {
+        Text = "Dual Kick Aura Radius",
+        Values = {"10", "20", "30", "40", "50"},
+        Default = "20",
+        Callback = function(v)
+            dualKickAuraRadius = tonumber(v)
+        end
+    })
+
+    AurasGroup:AddToggle("DualKickAuraWhitelist", {
+        Text = "Whitelist Friends",
+        Default = true,
+        Callback = function(v)
+            dualKickAuraWhitelist = v
+        end
+    })
+
+    AurasGroup:AddToggle("DualHandKickAura", {
+        Text = "Dual Hand Kick Aura",
+        Default = false,
+        Callback = function(on)
+            dualKickAuraEnabled = on
+            if dualKickAuraConn then
+                dualKickAuraConn:Disconnect()
+                dualKickAuraConn = nil
+            end
+            if not on then return end
+            dualKickAuraConn = RunService.Heartbeat:Connect(function()
+                local myChar = plr.Character
+                local hum = myChar and myChar:FindFirstChildOfClass("Humanoid")
+                local seat = hum and hum.SeatPart
+                local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                if not (seat and myRoot) then return end
+                local seatParent = seat.Parent
+                local scriptFolder = seatParent and seatParent:FindFirstChild("BlobmanSeatAndOwnerScript")
+                local grab = scriptFolder and scriptFolder:FindFirstChild("CreatureGrab")
+                local drop = scriptFolder and scriptFolder:FindFirstChild("CreatureDrop")
+                local leftDet = seatParent:FindFirstChild("LeftDetector")
+                local rightDet = seatParent:FindFirstChild("RightDetector")
+                local leftWeld = leftDet and leftDet:FindFirstChild("LeftWeld")
+                local rightWeld = rightDet and rightDet:FindFirstChild("RightWeld")
+                if not (grab and drop and leftDet and rightDet and leftWeld and rightWeld) then return end
+                for _, target in ipairs(Players:GetPlayers()) do
+                    if target ~= plr and target.Character and (not dualKickAuraWhitelist or not plr:IsFriendsWith(target.UserId)) then
+                        local tChar = target.Character
+                        local tRoot = tChar:FindFirstChild("HumanoidRootPart")
+                        local tHum = tChar:FindFirstChildOfClass("Humanoid")
+                        if tRoot and tHum and tHum.Health > 0 then
+                            local dist = (tRoot.Position - myRoot.Position).Magnitude
+                            if dist <= dualKickAuraRadius then
+                                pcall(function()
+                                    grab:FireServer(leftDet, tRoot, leftWeld)
+                                    task.wait(0.04)
+                                    drop:FireServer(leftWeld, tRoot)
+                                    grab:FireServer(rightDet, tRoot, rightWeld)
+                                    task.wait(0.04)
+                                    drop:FireServer(rightWeld, tRoot)
+                                    grab:FireServer(leftDet, tRoot, leftWeld)
+                                    grab:FireServer(rightDet, tRoot, rightWeld)
+                                    task.wait(0.03)
+                                    drop:FireServer(leftWeld, tRoot)
+                                    drop:FireServer(rightWeld, tRoot)
+                                end)
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    })
+end
+
+-- ============================================================
+-- TAB: FUN
+-- ============================================================
+
+do
+    local FanGroup = Tabs.Fun:AddLeftGroupbox("Animations")
+    local TrollGroup = Tabs.Fun:AddRightGroupbox("Troll")
+
+    -- ANIMAÇÃO BANG (SLOW)
+    local playBangActive = false
+    local bangAnimTrack = nil
+    local bangAnimId = "rbxassetid://148840371"
+    local bangSpeed = 10
+
+    local function startBang()
+        local char = plr.Character or plr.CharacterAdded:Wait()
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        local animator = hum:FindFirstChildOfClass("Animator")
+        if not animator then
+            animator = Instance.new("Animator")
+            animator.Parent = hum
+        end
+        local anim = Instance.new("Animation")
+        anim.AnimationId = bangAnimId
+        bangAnimTrack = animator:LoadAnimation(anim)
+        bangAnimTrack.Priority = Enum.AnimationPriority.Action
+        bangAnimTrack:Play()
+        bangAnimTrack:AdjustSpeed(bangSpeed)
+        task.spawn(function()
+            while playBangActive do
+                task.wait(0.1)
+                if bangAnimTrack and bangAnimTrack.IsPlaying then
+                    bangAnimTrack.TimePosition = 0.1
+                end
+            end
+        end)
+    end
+
+    local function stopBang()
+        if bangAnimTrack then
+            bangAnimTrack:Stop()
+            bangAnimTrack = nil
+        end
+    end
+
+    TrollGroup:AddToggle("BangToggle", {
+        Text = "Bang (Slow)",
+        Default = false,
+        Callback = function(on)
+            playBangActive = on
+            if on then startBang() else stopBang() end
+        end
+    })
+
+    -- FAKE DEATH
+    TrollGroup:AddToggle("FakeDeathToggle", {
+        Text = "Fake Death",
+        Default = false,
+        Callback = function(on)
+            local char = plr.Character
+            if not char then return end
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if not hum then return end
+            if on then
+                hum:ChangeState(Enum.HumanoidStateType.Physics)
+                hum.PlatformStand = true
+            else
+                hum.PlatformStand = false
+                hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+            end
+        end
+    })
+
+    -- FAKE LAG
+    local fakeLagConn
+    TrollGroup:AddToggle("FakeLagToggle", {
+        Text = "Fake Lag",
+        Default = false,
+        Callback = function(on)
+            if fakeLagConn then
+                fakeLagConn:Disconnect()
+                fakeLagConn = nil
+            end
+            if not on then return end
+            fakeLagConn = RunService.Heartbeat:Connect(function()
+                local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+                if not root then return end
+                if math.random(1, 5) == 1 then
+                    root.CFrame = root.CFrame * CFrame.new(math.random(-2, 2) / 10, 0, math.random(-2, 2) / 10)
+                end
+            end)
+        end
+    })
+
+    -- FOLLOW & STARE
+    local follow = false
+    TrollGroup:AddToggle("FollowStare", {
+        Text = "Follow & Stare",
+        Default = false,
+        Callback = function(on)
+            follow = on
+            task.spawn(function()
+                while follow do
+                    local target = Players:GetPlayers()[math.random(#Players:GetPlayers())]
+                    if target ~= plr and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                        local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+                        local thrp = target.Character.HumanoidRootPart
+                        if hrp and thrp then
+                            hrp.CFrame = CFrame.new(thrp.Position + thrp.CFrame.LookVector * -2, thrp.Position)
+                        end
+                    end
+                    task.wait(0.3)
+                end
+            end)
+        end
+    })
 end
 
 -- ============================================================
