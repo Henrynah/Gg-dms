@@ -2832,396 +2832,720 @@ do
         end
     })
 
-    -- Loop Kick Blob
-    box:AddToggle("LoopKickBlob", {
-        Text = "Loop Kick (Grab + Blob)",
+    -- ============================================================
+    -- LOOP KICK (GRAB + BLOB) - VERSÃO MELHORADA
+    -- ============================================================
+    local box2 = Tabs.Target:AddLeftGroupbox("Loop Kick (Grab + Blob)")
+
+    -- Dropdown para selecionar método de kick
+    box2:AddDropdown("KickMethod", {
+        Text = "Método de Kick",
+        Values = {
+            "Modo Agressivo (Recomendado)",
+            "Modo Silencioso",
+            "Modo Massivo",
+            "Modo Precision"
+        },
+        Default = 1,
+        Multi = false,
+    })
+
+    -- Slider para controlar a intensidade
+    box2:AddSlider("KickIntensity", {
+        Text = "Intensidade do Kick",
+        Default = 50,
+        Min = 10,
+        Max = 100,
+        Rounding = 0,
+        Callback = function(v)
+            _G.KickIntensity = v
+        end
+    })
+
+    -- Slider para controlar o delay
+    box2:AddSlider("KickDelay", {
+        Text = "Delay entre Kicks (ms)",
+        Default = 50,
+        Min = 10,
+        Max = 500,
+        Rounding = 0,
+        Callback = function(v)
+            _G.KickDelay = v / 1000
+        end
+    })
+
+    -- Toggle principal melhorado
+    box2:AddToggle("LoopKickBlobV2", {
+        Text = "Loop Kick V2 (Melhorado)",
         Default = false,
         Callback = function(on)
-            if not on then return end
+            if not on then
+                _G.KickLoopRunning = false
+                if _G.KickConnections then
+                    for _, conn in ipairs(_G.KickConnections) do
+                        pcall(function() conn:Disconnect() end)
+                    end
+                    _G.KickConnections = {}
+                end
+                return
+            end
 
             local targetName = GrabTarget.Value or BlobmanTarget.Value
             if not targetName or targetName == "None" then
-                Library:Notify("Selecione um alvo primeiro!", 3)
-                Toggles.LoopKickBlob:SetValue(false)
+                Library:Notify("⚠️ Selecione um alvo primeiro!", 4)
+                Toggles.LoopKickBlobV2:SetValue(false)
                 return
             end
 
             local target = Players:FindFirstChild(getname(targetName))
             if not target then
-                Toggles.LoopKickBlob:SetValue(false)
+                Library:Notify("⚠️ Alvo não encontrado!", 4)
+                Toggles.LoopKickBlobV2:SetValue(false)
                 return
             end
 
             local char = plr.Character
-            local hum = char and char:FindFirstChild("Humanoid")
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
             local seat = hum and hum.SeatPart
 
-            if not seat or seat.Parent.Name ~= "CreatureBlobman" then
-                Library:Notify("Sente no Blobman primeiro!", 3)
-                Toggles.LoopKickBlob:SetValue(false)
+            if not seat or not seat.Parent or seat.Parent.Name ~= "CreatureBlobman" then
+                Library:Notify("⚠️ Sente no Blobman primeiro!", 4)
+                Toggles.LoopKickBlobV2:SetValue(false)
                 return
             end
+
+            _G.KickLoopRunning = true
+            _G.KickConnections = {}
+            _G.KickIntensity = _G.KickIntensity or 50
+            _G.KickDelay = _G.KickDelay or 0.05
+
+            Library:Notify("🎯 Loop Kick iniciado em: " .. target.DisplayName, 4)
 
             task.spawn(function()
                 local blob = seat.Parent
                 local blobRoot = blob:FindFirstChild("HumanoidRootPart")
                 local scriptObj = blob:FindFirstChild("BlobmanSeatAndOwnerScript")
-                local CG = scriptObj and scriptObj:FindFirstChild("CreatureGrab")
-                local CD = scriptObj and scriptObj:FindFirstChild("CreatureDrop")
-                local R_Det = blob:FindFirstChild("RightDetector")
-                local R_Weld = R_Det and (R_Det:FindFirstChild("RightWeld") or R_Det:FindFirstChildWhichIsA("Weld"))
-                local SavedPos = blobRoot.CFrame
-
-                local tChar = target.Character
-                local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
-                local tHum = tChar and tChar:FindFirstChild("Humanoid")
-
-                if tRoot and blobRoot then
-                    for i = 1, 15 do
-                        if not Toggles.LoopKickBlob.Value then break end
-                        blobRoot.CFrame = tRoot.CFrame
-                        pcall(function()
-                            if CG and R_Det then 
-                                CG:FireServer(R_Det, tRoot, R_Weld) 
-                            end
-                            DestroyLine:FireServer(tRoot)
-                            SetNetOwner:FireServer(tRoot, tRoot.CFrame)
-                        end)
-                        task.wait()
-                    end
-                    blobRoot.CFrame = SavedPos
+                
+                if not scriptObj then
+                    Library:Notify("⚠️ Blobman inválido!", 4)
+                    Toggles.LoopKickBlobV2:SetValue(false)
+                    return
                 end
 
-                local packetTimer = 0
-                while Toggles.LoopKickBlob.Value do
-                    tChar = target.Character
-                    tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
-                    tHum = tChar and tChar:FindFirstChild("Humanoid")
+                local CG = scriptObj:FindFirstChild("CreatureGrab")
+                local CD = scriptObj:FindFirstChild("CreatureDrop")
+                local CR = scriptObj:FindFirstChild("CreatureRelease")
+                local R_Det = blob:FindFirstChild("RightDetector")
+                local L_Det = blob:FindFirstChild("LeftDetector")
+                
+                local R_Weld = R_Det and (R_Det:FindFirstChild("RightWeld") or R_Det:FindFirstChildWhichIsA("Weld"))
+                local L_Weld = L_Det and (L_Det:FindFirstChild("LeftWeld") or L_Det:FindFirstChildWhichIsA("Weld"))
 
-                    if tRoot and tHum and tHum.Health > 0 and blobRoot then
+                if not (CG and CD and R_Det) then
+                    Library:Notify("⚠️ Componentes do Blobman não encontrados!", 4)
+                    Toggles.LoopKickBlobV2:SetValue(false)
+                    return
+                end
+
+                local SavedPos = blobRoot and blobRoot.CFrame or CFrame.new()
+                local targetChar = target.Character
+                local targetRoot = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+                local targetHum = targetChar and targetChar:FindFirstChildOfClass("Humanoid")
+                local safePos = SavedPos * CFrame.new(0, 10, 0)
+
+                local kickThread = task.spawn(function()
+                    local methodIndex = Options.KickMethod and Options.KickMethod.Value or 1
+                    local intensity = _G.KickIntensity or 50
+                    local delay = _G.KickDelay or 0.05
+                    local packetCount = 0
+                    local lastPacketTime = tick()
+
+                    while _G.KickLoopRunning do
+                        targetChar = target.Character
+                        targetRoot = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+                        targetHum = targetChar and targetChar:FindFirstChildOfClass("Humanoid")
+
+                        if not targetRoot or not targetHum or targetHum.Health <= 0 then
+                            Library:Notify("💀 Alvo morreu ou saiu!", 4)
+                            _G.KickLoopRunning = false
+                            Toggles.LoopKickBlobV2:SetValue(false)
+                            break
+                        end
+
+                        if not blob or not blob.Parent then
+                            Library:Notify("⚠️ Blobman foi destruído!", 4)
+                            _G.KickLoopRunning = false
+                            Toggles.LoopKickBlobV2:SetValue(false)
+                            break
+                        end
+
+                        pcall(function()
+                            if methodIndex == 1 then
+                                if blobRoot then
+                                    blobRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 5, 0)
+                                end
+
+                                for i = 1, math.min(intensity, 50) do
+                                    if not _G.KickLoopRunning then break end
+                                    
+                                    if R_Det and R_Weld then
+                                        CG:FireServer(R_Det, targetRoot, R_Weld)
+                                        task.wait(delay / 2)
+                                        CD:FireServer(R_Weld, targetRoot)
+                                        task.wait(delay / 2)
+                                    end
+
+                                    if L_Det and L_Weld and intensity > 30 then
+                                        CG:FireServer(L_Det, targetRoot, L_Weld)
+                                        task.wait(delay / 2)
+                                        CD:FireServer(L_Weld, targetRoot)
+                                        task.wait(delay / 2)
+                                    end
+
+                                    packetCount = packetCount + 2
+                                end
+
+                                if intensity > 40 then
+                                    targetRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 5 + (intensity / 20), 0)
+                                end
+
+                                if blobRoot then
+                                    blobRoot.CFrame = safePos
+                                end
+
+                            elseif methodIndex == 2 then
+                                if blobRoot then
+                                    blobRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 8, 0)
+                                end
+
+                                for i = 1, math.min(intensity / 10, 10) do
+                                    if not _G.KickLoopRunning then break end
+                                    
+                                    if R_Det and R_Weld then
+                                        CG:FireServer(R_Det, targetRoot, R_Weld)
+                                        task.wait(delay * 2)
+                                        CD:FireServer(R_Weld, targetRoot)
+                                        task.wait(delay)
+                                    end
+
+                                    packetCount = packetCount + 1
+                                end
+
+                                local randomOffset = Vector3.new(
+                                    math.random(-3, 3),
+                                    8 + math.random(0, 3),
+                                    math.random(-3, 3)
+                                )
+                                targetRoot.CFrame = blobRoot.CFrame * CFrame.new(randomOffset)
+
+                                if blobRoot then
+                                    blobRoot.CFrame = safePos
+                                end
+
+                            elseif methodIndex == 3 then
+                                local positions = {
+                                    targetRoot.CFrame * CFrame.new(0, 3, 0),
+                                    targetRoot.CFrame * CFrame.new(2, 5, 2),
+                                    targetRoot.CFrame * CFrame.new(-2, 5, -2),
+                                    targetRoot.CFrame * CFrame.new(2, 3, -2),
+                                    targetRoot.CFrame * CFrame.new(-2, 3, 2),
+                                }
+
+                                for _, pos in ipairs(positions) do
+                                    if not _G.KickLoopRunning then break end
+                                    
+                                    if blobRoot then
+                                        blobRoot.CFrame = pos
+                                        task.wait(delay)
+                                    end
+
+                                    if R_Det and R_Weld then
+                                        CG:FireServer(R_Det, targetRoot, R_Weld)
+                                        task.wait(delay / 2)
+                                        CD:FireServer(R_Weld, targetRoot)
+                                    end
+
+                                    if L_Det and L_Weld then
+                                        CG:FireServer(L_Det, targetRoot, L_Weld)
+                                        task.wait(delay / 2)
+                                        CD:FireServer(L_Weld, targetRoot)
+                                    end
+
+                                    packetCount = packetCount + 3
+                                end
+
+                                targetRoot.CFrame = safePos * CFrame.new(0, 10 + intensity / 5, 0)
+
+                                if blobRoot then
+                                    blobRoot.CFrame = safePos
+                                end
+
+                            elseif methodIndex == 4 then
+                                local head = targetChar:FindFirstChild("Head")
+                                if head then
+                                    if blobRoot then
+                                        blobRoot.CFrame = head.CFrame * CFrame.new(0, 2, 0)
+                                    end
+
+                                    for i = 1, math.min(intensity / 5, 20) do
+                                        if not _G.KickLoopRunning then break end
+                                        
+                                        if R_Det and R_Weld then
+                                            CG:FireServer(R_Det, head, R_Weld)
+                                            task.wait(delay)
+                                            CD:FireServer(R_Weld, head)
+                                            task.wait(delay)
+                                        end
+
+                                        packetCount = packetCount + 1
+
+                                        if i % 5 == 0 and targetHum then
+                                            targetHum.Health = targetHum.Health - 5
+                                        end
+                                    end
+
+                                    if blobRoot then
+                                        blobRoot.CFrame = safePos
+                                    end
+                                end
+                            end
+
+                            if packetCount > 0 then
+                                if CR and R_Weld then
+                                    CR:FireServer(R_Weld)
+                                end
+                                if CR and L_Weld then
+                                    CR:FireServer(L_Weld)
+                                end
+                                packetCount = 0
+                            end
+
+                            task.wait(delay * 2)
+                        end)
+
+                        if not _G.KickLoopRunning then
+                            break
+                        end
+                    end
+
+                    if blobRoot then
                         blobRoot.CFrame = SavedPos
-                        tRoot.CFrame = SavedPos * CFrame.new(0, 23, 0)
+                        blobRoot.Velocity = Vector3.zero
+                    end
 
-                        if tick() - packetTimer > 0.012 then
-                            packetTimer = tick()
-                            pcall(function()
-                                tHum.PlatformStand = true
-                                DestroyLine:FireServer(tRoot)
-                                SetNetOwner:FireServer(tRoot, tRoot.CFrame)
-                                if R_Det and CD then CD:FireServer(R_Det.RightWeld or R_Det:FindFirstChildWhichIsA("Weld")) end
-                                if R_Det and CG then CG:FireServer(R_Det, tRoot, R_Weld) end
+                    if targetRoot then
+                        targetRoot.Velocity = Vector3.zero
+                    end
+
+                    Library:Notify("🛑 Loop Kick finalizado!", 3)
+                end)
+
+                local monitorThread = task.spawn(function()
+                    local lastHealth = targetHum and targetHum.Health or 100
+                    local kickCount = 0
+                    local startTime = tick()
+
+                    while _G.KickLoopRunning do
+                        task.wait(1)
+                        
+                        targetChar = target.Character
+                        targetHum = targetChar and targetChar:FindFirstChildOfClass("Humanoid")
+                        
+                        if targetHum then
+                            if targetHum.Health < lastHealth then
+                                kickCount = kickCount + 1
+                                lastHealth = targetHum.Health
+                            end
+
+                            if math.floor((tick() - startTime) % 5) == 0 then
+                                local timeRunning = math.floor(tick() - startTime)
+                                Library:Notify({
+                                    Title = "📊 Status Loop Kick",
+                                    Description = string.format(
+                                        "Alvo: %s\nHP: %d\nKicks: %d\nTempo: %ds",
+                                        target.DisplayName,
+                                        targetHum.Health,
+                                        kickCount,
+                                        timeRunning
+                                    ),
+                                    Time = 2,
+                                })
+                            end
+
+                            if targetHum.Health <= 0 then
+                                Library:Notify("💀 Alvo eliminado após " .. kickCount .. " kicks!", 4)
+                                _G.KickLoopRunning = false
+                                Toggles.LoopKickBlobV2:SetValue(false)
+                                break
+                            end
+                        end
+                    end
+                end)
+
+                _G.KickConnections = {kickThread, monitorThread}
+            end)
+        end
+    })
+
+    -- Botão de kick único
+    box2:AddButton("Kick Único (Teste)", function()
+        local targetName = GrabTarget.Value or BlobmanTarget.Value
+        if not targetName or targetName == "None" then
+            Library:Notify("⚠️ Selecione um alvo!", 4)
+            return
+        end
+
+        local target = Players:FindFirstChild(getname(targetName))
+        if not target or not target.Character then
+            Library:Notify("⚠️ Alvo inválido!", 4)
+            return
+        end
+
+        local char = plr.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        local seat = hum and hum.SeatPart
+        local blob = seat and seat.Parent
+
+        if not blob or blob.Name ~= "CreatureBlobman" then
+            Library:Notify("⚠️ Sente no Blobman!", 4)
+            return
+        end
+
+        local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
+        if not targetRoot then return end
+
+        local scriptObj = blob:FindFirstChild("BlobmanSeatAndOwnerScript")
+        if not scriptObj then return end
+
+        local CG = scriptObj:FindFirstChild("CreatureGrab")
+        local CD = scriptObj:FindFirstChild("CreatureDrop")
+        local R_Det = blob:FindFirstChild("RightDetector")
+        local R_Weld = R_Det and (R_Det:FindFirstChild("RightWeld") or R_Det:FindFirstChildWhichIsA("Weld"))
+
+        if CG and CD and R_Det and R_Weld then
+            pcall(function()
+                for i = 1, 10 do
+                    CG:FireServer(R_Det, targetRoot, R_Weld)
+                    task.wait(0.05)
+                    CD:FireServer(R_Weld, targetRoot)
+                    task.wait(0.05)
+                end
+                Library:Notify("✅ Kick único aplicado!", 3)
+            end)
+        end
+    end)
+
+    -- Botão para parar emergencial
+    box2:AddButton("🛑 Parar Loop Emergencial", function()
+        _G.KickLoopRunning = false
+        if _G.KickConnections then
+            for _, conn in ipairs(_G.KickConnections) do
+                pcall(function() task.cancel(conn) end)
+            end
+            _G.KickConnections = {}
+        end
+        Library:Notify("🛑 Loop parado com sucesso!", 4)
+        Toggles.LoopKickBlobV2:SetValue(false)
+    end)
+
+    -- TARGET - Anti Input Lag Target
+    do
+        local box3 = Tabs.Target:AddRightGroupbox("Anti Input Lag Target")
+
+        local AllowedItems = {
+            FoodHamburger = true, FoodCoconut = true, FoodPizzaCheese = true,
+            FoodPizzaPepperoni = true, FoodHotdog = true, FoodMushroomPoison = true,
+            FoodBread = true, FoodDippyEgg = true, FoodMayonnaise = true,
+            FoodFrenchFries = true, FoodMeatStick = true, FoodDonut = true,
+            FoodCakePink = true, FoodBanana = true,
+            InstrumentGuitarBanjo = true, InstrumentGuitarViolin = true,
+            InstrumentGuitarUkulele = true, InstrumentWoodwindSaxophone = true,
+            InstrumentWoodwindOcarina = true, InstrumentBrassVuvuzelaQwizik = true,
+            InstrumentBrassTrumpet = true, InstrumentDrumBongos = true,
+            InstrumentDrumSnare = true, InstrumentPianoMelodica = true,
+            InstrumentVoiceMicrophone = true,
+            CupMugWhite = true, CupMugBrown = true,
+            PoopPile = true, PoopPileSparkle = true,
+        }
+
+        local SelectedAntiLagTarget = box3:AddDropdown("AntiLagTarget", {
+            Text = "Alvo Anti Input Lag",
+            Values = {"None"},
+            Default = "None",
+            Multi = false,
+        })
+
+        box3:AddToggle("RemoveAntiInputLagTarget", {
+            Text = "Remove Anti Input Lag",
+            Default = false,
+            Callback = function(state)
+                if not state then return end
+
+                task.spawn(function()
+                    local targetName = SelectedAntiLagTarget.Value
+                    if targetName == "None" then
+                        Library:Notify("Selecione um jogador!", 4)
+                        Toggles.RemoveAntiInputLagTarget:SetValue(false)
+                        return
+                    end
+
+                    local target = Players:FindFirstChild(getname(targetName))
+                    if not target then
+                        Library:Notify("Alvo não encontrado!", 4)
+                        Toggles.RemoveAntiInputLagTarget:SetValue(false)
+                        return
+                    end
+
+                    Library:Notify("Anti Input Lag on: " .. target.DisplayName, 5)
+
+                    local connections = {}
+
+                    local function ProcessItem(item)
+                        if not item or not AllowedItems[item.Name] or not item:FindFirstChild("HoldPart") then return end
+
+                        local holdPart = item.HoldPart
+                        pcall(function()
+                            holdPart.HoldItemRemoteFunction:InvokeServer(item, plr.Character)
+                        end)
+                        task.wait(0.025)
+                        pcall(function()
+                            holdPart.DropItemRemoteFunction:InvokeServer(item, 
+                                CFrame.new(0, -3000, 0), Vector3.zero)
+                        end)
+                    end
+
+                    local function StartMonitoring()
+                        local folderName = target.Name .. "SpawnedInToys"
+                        local folder = workspace:FindFirstChild(folderName)
+
+                        if folder then
+                            for _, item in ipairs(folder:GetChildren()) do
+                                ProcessItem(item)
+                            end
+
+                            connections[#connections+1] = folder.ChildAdded:Connect(function(item)
+                                task.wait(0.05)
+                                ProcessItem(item)
                             end)
                         end
                     end
-                    RunService.Heartbeat:Wait()
-                end
 
-                if blobRoot then 
-                    blobRoot.CFrame = SavedPos 
-                    blobRoot.Velocity = Vector3.zero 
-                end
-            end)
-        end
-    })
-end
+                    StartMonitoring()
 
--- TARGET - Anti Input Lag Target
-do
-    local box = Tabs.Target:AddRightGroupbox("Anti Input Lag Target")
-
-    local AllowedItems = {
-        FoodHamburger = true, FoodCoconut = true, FoodPizzaCheese = true,
-        FoodPizzaPepperoni = true, FoodHotdog = true, FoodMushroomPoison = true,
-        FoodBread = true, FoodDippyEgg = true, FoodMayonnaise = true,
-        FoodFrenchFries = true, FoodMeatStick = true, FoodDonut = true,
-        FoodCakePink = true, FoodBanana = true,
-        InstrumentGuitarBanjo = true, InstrumentGuitarViolin = true,
-        InstrumentGuitarUkulele = true, InstrumentWoodwindSaxophone = true,
-        InstrumentWoodwindOcarina = true, InstrumentBrassVuvuzelaQwizik = true,
-        InstrumentBrassTrumpet = true, InstrumentDrumBongos = true,
-        InstrumentDrumSnare = true, InstrumentPianoMelodica = true,
-        InstrumentVoiceMicrophone = true,
-        CupMugWhite = true, CupMugBrown = true,
-        PoopPile = true, PoopPileSparkle = true,
-    }
-
-    local SelectedAntiLagTarget = box:AddDropdown("AntiLagTarget", {
-        Text = "Alvo Anti Input Lag",
-        Values = {"None"},
-        Default = "None",
-        Multi = false,
-    })
-
-    box:AddToggle("RemoveAntiInputLagTarget", {
-        Text = "Remove Anti Input Lag",
-        Default = false,
-        Callback = function(state)
-            if not state then return end
-
-            task.spawn(function()
-                local targetName = SelectedAntiLagTarget.Value
-                if targetName == "None" then
-                    Library:Notify("Selecione um jogador!", 4)
-                    Toggles.RemoveAntiInputLagTarget:SetValue(false)
-                    return
-                end
-
-                local target = Players:FindFirstChild(getname(targetName))
-                if not target then
-                    Library:Notify("Alvo não encontrado!", 4)
-                    Toggles.RemoveAntiInputLagTarget:SetValue(false)
-                    return
-                end
-
-                Library:Notify("Anti Input Lag on: " .. target.DisplayName, 5)
-
-                local connections = {}
-
-                local function ProcessItem(item)
-                    if not item or not AllowedItems[item.Name] or not item:FindFirstChild("HoldPart") then return end
-
-                    local holdPart = item.HoldPart
-                    pcall(function()
-                        holdPart.HoldItemRemoteFunction:InvokeServer(item, plr.Character)
+                    connections[#connections+1] = target.CharacterAdded:Connect(function()
+                        task.wait(1)
+                        StartMonitoring()
                     end)
-                    task.wait(0.025)
-                    pcall(function()
-                        holdPart.DropItemRemoteFunction:InvokeServer(item, 
-                            CFrame.new(0, -3000, 0), Vector3.zero)
-                    end)
-                end
 
-                local function StartMonitoring()
-                    local folderName = target.Name .. "SpawnedInToys"
-                    local folder = workspace:FindFirstChild(folderName)
-
-                    if folder then
-                        for _, item in ipairs(folder:GetChildren()) do
-                            ProcessItem(item)
-                        end
-
-                        connections[#connections+1] = folder.ChildAdded:Connect(function(item)
-                            task.wait(0.05)
-                            ProcessItem(item)
-                        end)
+                    while Toggles.RemoveAntiInputLagTarget.Value do
+                        StartMonitoring()
+                        task.wait(2)
                     end
-                end
 
-                StartMonitoring()
-
-                connections[#connections+1] = target.CharacterAdded:Connect(function()
-                    task.wait(1)
-                    StartMonitoring()
+                    for _, conn in ipairs(connections) do
+                        pcall(function() conn:Disconnect() end)
+                    end
                 end)
-
-                while Toggles.RemoveAntiInputLagTarget.Value do
-                    StartMonitoring()
-                    task.wait(2)
-                end
-
-                for _, conn in ipairs(connections) do
-                    pcall(function() conn:Disconnect() end)
-                end
-            end)
-        end
-    })
-
-    local function UpdateTargets()
-        local list = {"None"}
-        for _, pl in Players:GetPlayers() do
-            if pl ~= plr then
-                table.insert(list, pl.DisplayName .. " (" .. pl.Name .. ")")
             end
+        })
+
+        local function UpdateTargets()
+            local list = {"None"}
+            for _, pl in Players:GetPlayers() do
+                if pl ~= plr then
+                    table.insert(list, pl.DisplayName .. " (" .. pl.Name .. ")")
+                end
+            end
+            SelectedAntiLagTarget:SetValues(list)
         end
-        SelectedAntiLagTarget:SetValues(list)
+
+        Players.PlayerAdded:Connect(UpdateTargets)
+        Players.PlayerRemoving:Connect(UpdateTargets)
+        UpdateTargets()
     end
 
-    Players.PlayerAdded:Connect(UpdateTargets)
-    Players.PlayerRemoving:Connect(UpdateTargets)
-    UpdateTargets()
-end
+    -- TARGET - Remove Gucci + Void TP
+    do
+        local box4 = Tabs.Target:AddLeftGroupbox("More")
 
--- TARGET - Remove Gucci + Void TP
-do
-    local box = Tabs.Target:AddLeftGroupbox("More")
+        local GucciAtivado = false
+        local loopConnection = nil
 
-    local GucciAtivado = false
-    local loopConnection = nil
+        box4:AddButton("Activate remove gucci", function()
+            if GucciAtivado then 
+                print("Remove Gucci it's already activated") 
+                return 
+            end
 
-    box:AddButton("Activate remove gucci", function()
-        if GucciAtivado then 
-            print("Remove Gucci it's already activated") 
-            return 
-        end
+            GucciAtivado = true
+            print("Remove gucci on")
 
-        GucciAtivado = true
-        print("Remove gucci on")
+            loopConnection = task.spawn(function()
+                while GucciAtivado do
+                    local Seat = Seats[Sets.Name]
 
-        loopConnection = task.spawn(function()
-            while GucciAtivado do
-                local Seat = Seats[Sets.Name]
+                    if Seat and hum and HRP then
+                        Seat:Sit(hum)
+                        task.wait(0.03)
+                        stvel(HRP)
+                        HRP.CFrame = HRP.CFrame
+                    end
 
-                if Seat and hum and HRP then
-                    Seat:Sit(hum)
-                    task.wait(0.03)
-                    stvel(HRP)
-                    HRP.CFrame = HRP.CFrame
+                    task.wait(0.15)
                 end
+            end)
+        end)
 
-                task.wait(0.15)
+        box4:AddButton("Disable remove gucci", function()
+            if not GucciAtivado then 
+                print("Remove gucci already deactivated") 
+                return 
+            end
+
+            GucciAtivado = false
+            print("Remove gucci off")
+
+            if loopConnection then
+                task.cancel(loopConnection)
+                loopConnection = nil
             end
         end)
-    end)
 
-    box:AddButton("Disable remove gucci", function()
-        if not GucciAtivado then 
-            print("Remove gucci already deactivated") 
-            return 
-        end
+        box4:AddButton("Void TP", function()
+            local player = game.Players.LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local hrp = character:WaitForChild("HumanoidRootPart")
 
-        GucciAtivado = false
-        print("Remove gucci off")
+            local pos = Vector3.new(6935.58, -557.95, 14922.55)
 
-        if loopConnection then
-            task.cancel(loopConnection)
-            loopConnection = nil
-        end
-    end)
+            local plataforma = workspace:FindFirstChild("PlataformaNeonPermanente")
 
-    box:AddButton("Void TP", function()
-        local player = game.Players.LocalPlayer
-        local character = player.Character or player.CharacterAdded:Wait()
-        local hrp = character:WaitForChild("HumanoidRootPart")
+            if not plataforma then
+                plataforma = Instance.new("Part")
+                plataforma.Name = "PlataformaNeonPermanente"
+                plataforma.Size = Vector3.new(4000, 3, 4000)
+                plataforma.Position = pos - Vector3.new(0, 5, 0)
+                plataforma.Anchored = true
+                plataforma.CanCollide = true
+                plataforma.Transparency = 0
+                plataforma.Color = Color3.fromRGB(255, 255, 255)
+                plataforma.Material = Enum.Material.Neon
+                plataforma.Parent = workspace
+            end
 
-        local pos = Vector3.new(6935.58, -557.95, 14922.55)
+            hrp.CFrame = CFrame.new(pos)
+        end)
+    end
 
-        local plataforma = workspace:FindFirstChild("PlataformaNeonPermanente")
+    -- TARGET - Settings
+    do
+        local box5 = Tabs.Target:AddLeftGroupbox("Settings", "wrench")
+        box5:AddLabel("Change Offset\n(Only for loop grabs)", false)
+        local x,y,z
+        box5:AddSlider("Offset", {
+            Text = "X",
+            Default = -4.9,
+            Min = -20,
+            Max = 20,
+            Rounding = 1,
+            Callback = function(v)
+                x = v
+                offset = CFrame.new(v or 0, y or 0, z or 0)
+            end
+        })
+        box5:AddSlider("Offset", {
+            Text = "Y",
+            Default = 13.5,
+            Min = -20,
+            Max = 20,
+            Rounding = 1,
+            Callback = function(v)
+                y = v
+                offset = CFrame.new(x or 0, v, z or 0)
+            end
+        })
+        box5:AddSlider("Offset", {
+            Text = "Z",
+            Default = 0,
+            Min = -20,
+            Max = 20,
+            Rounding = 1,
+            Callback = function(v)
+                z = v
+                offset = CFrame.new(x or 0, y or 0, v)
+            end
+        })
 
-        if not plataforma then
-            plataforma = Instance.new("Part")
-            plataforma.Name = "PlataformaNeonPermanente"
-            plataforma.Size = Vector3.new(4000, 3, 4000)
-            plataforma.Position = pos - Vector3.new(0, 5, 0)
-            plataforma.Anchored = true
-            plataforma.CanCollide = true
-            plataforma.Transparency = 0
-            plataforma.Color = Color3.fromRGB(255, 255, 255)
-            plataforma.Material = Enum.Material.Neon
-            plataforma.Parent = workspace
-        end
-
-        hrp.CFrame = CFrame.new(pos)
-    end)
-end
-
--- TARGET - Settings
-do
-    local box = Tabs.Target:AddLeftGroupbox("Settings", "wrench")
-    box:AddLabel("Change Offset\n(Only for loop grabs)", false)
-    local x,y,z
-    box:AddSlider("Offset", {
-        Text = "X",
-        Default = -4.9,
-        Min = -20,
-        Max = 20,
-        Rounding = 1,
-        Callback = function(v)
-            x = v
-            offset = CFrame.new(v or 0, y or 0, z or 0)
-        end
-    })
-    box:AddSlider("Offset", {
-        Text = "Y",
-        Default = 13.5,
-        Min = -20,
-        Max = 20,
-        Rounding = 1,
-        Callback = function(v)
-            y = v
-            offset = CFrame.new(x or 0, v, z or 0)
-        end
-    })
-    box:AddSlider("Offset", {
-        Text = "Z",
-        Default = 0,
-        Min = -20,
-        Max = 20,
-        Rounding = 1,
-        Callback = function(v)
-            z = v
-            offset = CFrame.new(x or 0, y or 0, v)
-        end
-    })
-
-    box:AddToggle("EnableRagdoll", {
-        Text = "Enable Ragdoll Target",
-        Default = false,
-        Callback = function(v)
-            if v then
-                local function spawnragdoll()
-                    PalletForRagdoll = spawntoy("PalletLightBrown", HRP.CFrame * CFrame.new(0, 10, 20))
-                    repeat task.wait() until PalletForRagdoll and PalletForRagdoll:FindFirstChild("SoundPart")
-                    repeat task.wait() sno(PalletForRagdoll.SoundPart) until PalletForRagdoll.SoundPart:FindFirstChild("PartOwner")
-                    PalletForRagdoll.SoundPart.AssemblyLinearVelocity = Vector3.new(0, 1e9, 0)
-                    for i,v in pairs(PalletForRagdoll:GetChildren()) do
-                        if v:IsA("Part") then
-                            v.CanCollide = false
-                            v.CanQuery = false
-                            v.Transparency = 1
+        box5:AddToggle("EnableRagdoll", {
+            Text = "Enable Ragdoll Target",
+            Default = false,
+            Callback = function(v)
+                if v then
+                    local function spawnragdoll()
+                        PalletForRagdoll = spawntoy("PalletLightBrown", HRP.CFrame * CFrame.new(0, 10, 20))
+                        repeat task.wait() until PalletForRagdoll and PalletForRagdoll:FindFirstChild("SoundPart")
+                        repeat task.wait() sno(PalletForRagdoll.SoundPart) until PalletForRagdoll.SoundPart:FindFirstChild("PartOwner")
+                        PalletForRagdoll.SoundPart.AssemblyLinearVelocity = Vector3.new(0, 1e9, 0)
+                        for i,v in pairs(PalletForRagdoll:GetChildren()) do
+                            if v:IsA("Part") then
+                                v.CanCollide = false
+                                v.CanQuery = false
+                                v.Transparency = 1
+                            end
                         end
+                        PalletForRagdoll.Name = "PalletForRagdoll"
+                        cons["PalletDestroying"] = PalletForRagdoll.Destroying:Once(function()
+                            spawnragdoll()
+                        end)
                     end
-                    PalletForRagdoll.Name = "PalletForRagdoll"
-                    cons["PalletDestroying"] = PalletForRagdoll.Destroying:Once(function()
-                        spawnragdoll()
-                    end)
-                end
-                spawnragdoll()
-            else
-                if cons["PalletDestroying"] then
-                    cons["PalletDestroying"]:Disconnect()
-                    cons["PalletDestroying"] = nil
-                end
-                if inv:FindFirstChild("PalletForRagdoll") then
-                    DestroyToy:FireServer(inv.PalletForRagdoll)
+                    spawnragdoll()
+                else
+                    if cons["PalletDestroying"] then
+                        cons["PalletDestroying"]:Disconnect()
+                        cons["PalletDestroying"] = nil
+                    end
+                    if inv:FindFirstChild("PalletForRagdoll") then
+                        DestroyToy:FireServer(inv.PalletForRagdoll)
+                    end
                 end
             end
-        end
-    })
+        })
 
-    box:AddToggle("EnableGrabAntiKick", {
-        Text = "Enable Anti Anti Kick",
-        Default = false,
-        Callback = function(v)
-            if v then
-                task.spawn(function()
-                    while Toggles.EnableGrabAntiKick.Value and RunService.RenderStepped:Wait() do
-                        if not GrabTarget.Value then return end
-                        local tt = Players:FindFirstChild(getname(GrabTarget.Value))
-                        if not tt then return end
-                        for i,v in pairs(workspace[tt.Name.."SpawnedInToys"]:GetChildren()) do
-                            if v:FindFirstChild("StickyPart") and (v.StickyPart.Position - HRP.Position).Magnitude < 30 then
-                                sno(v.StickyPart)
-                                if v.StickyPart:FindFirstChild("PartOwner") and v.StickyPart.PartOwner.Value == plr.Name then
-                                    v.StickyPart.CFrame = CFrame.new(0, 0/0, 0)
+        box5:AddToggle("EnableGrabAntiKick", {
+            Text = "Enable Anti Anti Kick",
+            Default = false,
+            Callback = function(v)
+                if v then
+                    task.spawn(function()
+                        while Toggles.EnableGrabAntiKick.Value and RunService.RenderStepped:Wait() do
+                            if not GrabTarget.Value then return end
+                            local tt = Players:FindFirstChild(getname(GrabTarget.Value))
+                            if not tt then return end
+                            for i,v in pairs(workspace[tt.Name.."SpawnedInToys"]:GetChildren()) do
+                                if v:FindFirstChild("StickyPart") and (v.StickyPart.Position - HRP.Position).Magnitude < 30 then
+                                    sno(v.StickyPart)
+                                    if v.StickyPart:FindFirstChild("PartOwner") and v.StickyPart.PartOwner.Value == plr.Name then
+                                        v.StickyPart.CFrame = CFrame.new(0, 0/0, 0)
+                                    end
                                 end
                             end
                         end
-                    end
-                end)
+                    end)
+                end
             end
-        end
-    })
-end
+        })
+    end
 
-do
-    local box = Tabs.Target:AddRightGroupbox("Settings", "wrench")
-    box:AddSlider("BlobDelay", {
-        Text = "Blob Delay",
-        Default = 0.05,
-        Min = 0,
-        Max = 1,
-        Rounding = 2,
-    })
+    do
+        local box6 = Tabs.Target:AddRightGroupbox("Settings", "wrench")
+        box6:AddSlider("BlobDelay", {
+            Text = "Blob Delay",
+            Default = 0.05,
+            Min = 0,
+            Max = 1,
+            Rounding = 2,
+        })
+    end
 end
 
 -- ============================================================
@@ -3353,7 +3677,7 @@ do
 end
 
 -- ============================================================
--- [PARTE 6: LAGS]
+-- [PARTE 6: PACKET LAG MELHORADO - NÃO AFETA O REMETENTE]
 -- ============================================================
 
 do
@@ -3432,14 +3756,18 @@ do
         return success and ping or 0
     end
 
+    -- ============================================================
+    -- PACKET LAG - NÃO AFETA O REMETENTE
+    -- ============================================================
     box:AddToggle("PacketLag", {
-        Text = "Packet Lag",
+        Text = "Packet Lag (Não afeta você!)",
         Default = false,
         Callback = function(v)
             PacketsEnabled = v
 
             if v then
-                Library:Notify("Packet Lag Ativado", 3)
+                Library:Notify("🚀 Packet Lag Ativado - Você está protegido!", 3)
+                
                 task.spawn(function()
                     while PacketsEnabled do
                         if AutoStopEnabled then
@@ -3453,11 +3781,11 @@ do
 
                         pcall(function()
                             if AntiDetect then
-                                game:GetService("ReplicatedStorage").GrabEvents.CreateGrabLine:FireServer(
+                                rs.GrabEvents.CreateGrabLine:FireServer(
                                     string.rep("VTX_Hub is crazyyyyyyyy", Packets)
                                 )
                             else
-                                game:GetService("ReplicatedStorage").GrabEvents.ExtendGrabLine:FireServer(
+                                rs.GrabEvents.ExtendGrabLine:FireServer(
                                     string.rep("VTX_Hub is crazyyyyyyyy", Packets)
                                 )
                             end
@@ -3491,6 +3819,42 @@ do
         end
     })
 end
+
+-- ============================================================
+-- PACKET DETECTOR MODIFICADO - IGNORA O REMETENTE
+-- ============================================================
+local activepackets = false
+
+rs.GrabEvents.ExtendGrabLine.OnClientEvent:Connect(function(player, args)
+    -- IGNORA PACOTES DO PRÓPRIO JOGADOR
+    if player == plr then
+        return
+    end
+    
+    if typeof(args) == "string" and string.len(args) > 300 and not activepackets then
+        activepackets = true
+        local function GetSizeMB(StringLength)
+            return StringLength / (1024 * 1024)
+        end
+        local SizeRounded = math.round(GetSizeMB(string.len(args)) * 1000) / 1000 
+        
+        if player.Name ~= plr.Name then
+            Library:Notify({
+                Title = "VTX_Hub",
+                Description = player.Name .. " Enabled Packets Size: " .. SizeRounded .. "MB",
+                Time = 4,
+                Icon = "rbxassetid://127990091575711"
+            })
+        end
+        task.wait(4)
+        activepackets = false
+    end
+end)
+
+-- TAMBÉM FILTRA O CreateGrabLine
+rs.GrabEvents.CreateGrabLine.OnClientEvent:Connect(function(player, pos, ...)
+    if player == plr then return end
+end)
 
 -- ============================================================
 -- [PARTE 7: KEYBINDS + VFLY]
@@ -3929,10 +4293,9 @@ game.Players.PlayerRemoving:Connect(function(pl)
 end)
 
 -- ============================================================
--- [PARTE 9: SERVER + PACKET DETECTOR]
+-- [PARTE 9: SERVER]
 -- ============================================================
 
--- SERVER
 do
     local box = Tabs["Server"]:AddLeftGroupbox("Main")
 
@@ -3981,26 +4344,6 @@ do
         DestroyToy:FireServer(inv.blob)
     end)
 end
-
--- PACKET DETECTOR
-local activepackets = false
-rs.GrabEvents.ExtendGrabLine.OnClientEvent:Connect(function(player, args)
-    if typeof(args) == "string" and string.len(args) > 300 and not activepackets then
-        activepackets = true
-        local function GetSizeMB(StringLength)
-            return StringLength / (1024 * 1024)
-        end
-        local SizeRounded = math.round(GetSizeMB(string.len(args)) * 1000) / 1000 
-        Library:Notify({
-            Title = "VTX_Hub",
-            Description = player.Name .. " Enabled Packets Size: " .. SizeRounded,
-            Time = 4,
-            Icon = "rbxassetid://127990091575711"
-        })
-        task.wait(4)
-        activepackets = false
-    end
-end)
 
 -- ============================================================
 -- [PARTE 10: AURAS]
