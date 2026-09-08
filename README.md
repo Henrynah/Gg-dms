@@ -1,1 +1,2 @@
-Frost client🔥
+blacklist:anti_cheat237
+
