@@ -1,2 +1,2 @@
-blacklist:anti_cheat237
+f
 
